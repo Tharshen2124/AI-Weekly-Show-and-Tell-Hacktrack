@@ -1,0 +1,234 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { useMutation, useQuery } from "convex/react";
+import { FunctionReturnType } from "convex/server";
+import { Folder, Hourglass, Lightbulb, MessageSquareText, Pencil, Timer, Trash2 } from "lucide-react";
+import { api } from "../../../convex/_generated/api";
+import { Id } from "../../../convex/_generated/dataModel";
+import { useAuthStore } from "@/lib/auth-store";
+import { useToast } from "@/components/providers/toast-provider";
+import { ModalLayout } from "@/components/ui/modal-layout";
+import { StatusPill } from "@/components/ui/status-pill";
+import { NullTextIndicator } from "@/components/ui/null-text-indicator";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { ProjectFormModal } from "@/components/forms/project-form-modal";
+import { UpdateAdminActions } from "./update-admin-actions";
+import { MEETUP_CATEGORY_LABELS, PROJECT_CATEGORY_LABELS, UPDATE_CATEGORY_LABELS } from "@/lib/labels";
+import { formatDate } from "@/lib/format";
+
+export type MemberListItem = FunctionReturnType<typeof api.members.list>["data"][number];
+type MemberDetail = NonNullable<FunctionReturnType<typeof api.members.get>>;
+type MemberProject = MemberDetail["projects"][number];
+
+function Metric({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof Folder;
+  label: string;
+  value: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-2 text-sm">
+      <span className="flex items-center gap-1.5 text-ink-muted">
+        <Icon className="h-3.5 w-3.5 text-ink-faint" />
+        {label}
+      </span>
+      <span className="font-medium tabular-nums">{value}</span>
+    </div>
+  );
+}
+
+export function MemberCard({ member }: { member: MemberListItem }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="group w-full rounded-card border border-edge bg-surface-raised p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-md"
+      >
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="font-serif-display text-xl leading-tight">{member.name}</h3>
+          <StatusPill status={member.status} />
+        </div>
+        <div className="mt-4 space-y-2">
+          <Metric icon={Folder} label="Projects" value={member.projectCount} />
+          <Metric
+            icon={Lightbulb}
+            label="Idea / progress talks"
+            value={`${member.ideaTalkCount} / ${member.progressTalkCount}`}
+          />
+          <Metric icon={Hourglass} label="Active for" value={member.durationActive} />
+          <Metric
+            icon={Timer}
+            label="Avg between talks"
+            value={member.avgTimeBetweenTalks ?? <NullTextIndicator />}
+          />
+          <Metric
+            icon={MessageSquareText}
+            label="Meetups since last talk"
+            value={member.meetupsSinceLastTalk}
+          />
+        </div>
+      </button>
+      {open && <MemberDetailModal memberId={member._id} onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
+function ProjectSection({ project }: { project: MemberProject }) {
+  const isAdmin = useAuthStore((s) => s.isAdmin);
+  const token = useAuthStore((s) => s.token);
+  const toast = useToast();
+  const removeProject = useMutation(api.projects.remove);
+  const [editing, setEditing] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+
+  return (
+    <div className="rounded-card border border-edge bg-surface p-3.5">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="font-medium">{project.name}</p>
+          <p className="text-xs text-ink-faint">
+            {PROJECT_CATEGORY_LABELS[project.category]}
+            {project.completed ? " · Completed" : ""}
+            {" · "}
+            {project.members.map((m) => m.name).join(", ")}
+          </p>
+        </div>
+        {isAdmin && (
+          <span className="flex shrink-0 items-center gap-1">
+            <button
+              aria-label="Edit project"
+              onClick={() => setEditing(true)}
+              className="rounded p-1.5 text-ink-faint transition-colors hover:bg-surface-sunken hover:text-ink"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+            <button
+              aria-label="Delete project"
+              onClick={() => setConfirming(true)}
+              className="rounded p-1.5 text-ink-faint transition-colors hover:bg-danger-soft hover:text-danger"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </span>
+        )}
+      </div>
+
+      {project.updates.length > 0 && (
+        <ul className="mt-3 space-y-2 border-t border-edge pt-3">
+          {project.updates.map((u) => (
+            <li key={u._id} className="text-sm">
+              <div className="flex items-start justify-between gap-2">
+                <span className="text-ink-muted">
+                  <span className="font-medium text-ink">
+                    {MEETUP_CATEGORY_LABELS[u.meetupCategory]} #{u.meetupNumber}
+                  </span>{" "}
+                  · {formatDate(u.meetupDate)} · {UPDATE_CATEGORY_LABELS[u.category]} by {u.memberName}
+                </span>
+                {isAdmin && (
+                  <UpdateAdminActions
+                    update={{
+                      id: u._id,
+                      memberId: u.memberId,
+                      projectId: project._id,
+                      meetupId: u.meetupId,
+                      category: u.category,
+                      description: u.description,
+                    }}
+                  />
+                )}
+              </div>
+              <p className="text-ink-muted">{u.description}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <ProjectFormModal
+        open={editing}
+        onClose={() => setEditing(false)}
+        initial={{
+          id: project._id,
+          name: project.name,
+          category: project.category,
+          completed: project.completed,
+          memberIds: project.members.map((m) => m.id),
+        }}
+      />
+      <ConfirmDialog
+        open={confirming}
+        onClose={() => setConfirming(false)}
+        title="Delete project"
+        description={`Deleting "${project.name}" will also delete its ${project.updates.length} ${
+          project.updates.length === 1 ? "update" : "updates"
+        }. This cannot be undone.`}
+        onConfirm={async () => {
+          if (!token) return;
+          try {
+            await removeProject({ token, id: project._id });
+            toast.success("Successfully deleted project!");
+          } catch {
+            toast.error("Error occurred, project was not deleted.");
+          }
+        }}
+      />
+    </div>
+  );
+}
+
+export function MemberDetailModal({
+  memberId,
+  onClose,
+}: {
+  memberId: Id<"members">;
+  onClose: () => void;
+}) {
+  const token = useAuthStore((s) => s.token);
+  const member = useQuery(api.members.get, token ? { token, id: memberId } : "skip");
+
+  return (
+    <ModalLayout open onClose={onClose} title={member?.name ?? "Member"} wide>
+      {!member ? (
+        <div className="space-y-3 py-2">
+          <div className="h-5 w-40 animate-pulse rounded bg-surface-sunken" />
+          <div className="h-24 animate-pulse rounded bg-surface-sunken" />
+        </div>
+      ) : (
+        <>
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusPill status={member.status} />
+            <span className="text-sm text-ink-muted">
+              Active for {member.durationActive} · {member.totalUpdates} updates ·{" "}
+              {member.meetupsSinceLastTalk} meetups since last talk
+            </span>
+          </div>
+          <div className="mt-5 space-y-3">
+            <h3 className="text-sm font-medium tracking-wider text-ink-faint uppercase">
+              Projects
+            </h3>
+            {member.projects.length === 0 && (
+              <p className="py-4 text-center text-sm text-ink-faint">No projects yet.</p>
+            )}
+            {member.projects.map((project) => (
+              <ProjectSection key={project._id} project={project} />
+            ))}
+          </div>
+          <div className="mt-5 border-t border-edge pt-4">
+            <Link
+              href={`/members/${member._id}`}
+              className="text-sm font-medium underline underline-offset-4 hover:text-ink-muted"
+            >
+              View full page →
+            </Link>
+          </div>
+        </>
+      )}
+    </ModalLayout>
+  );
+}

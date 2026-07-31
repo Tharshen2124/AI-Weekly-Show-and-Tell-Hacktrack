@@ -1,0 +1,112 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Design language borrowed from malaysian.ai: warm cream paper, near-black
+ * dark-teal ink, serif display headings at regular weight. Dark mode keeps the
+ * brand by inverting the same pair instead of falling back to generic grays.
+ */
+:root {
+  --surface: #f5f2ea; /* cream */
+  --surface-raised: #efebdf;
+  --surface-sunken: #e8e4d9; /* cream-dark */
+  --surface-overlay: #faf8f2;
+  --ink: #0b1f23; /* dark teal */
+  --ink-muted: #4f6367;
+  --ink-faint: #7a8a8d;
+  --edge: #dad5c8; /* sand */
+  --edge-strong: #c2bcab;
+  --accent: #0b1f23;
+  --accent-hover: #16333a;
+  --on-accent: #f5f2ea;
+  --danger: #b3403a;
+  --danger-soft: #f3e0de;
+  --success: #2f6b4f;
+  --success-soft: #dfeae2;
+  --info: #275d6b;
+  --info-soft: #dde9ec;
+}
+
+.dark {
+  --surface: #0b1f23;
+  --surface-raised: #10282d;
+  --surface-sunken: #081619;
+  --surface-overlay: #132e34;
+  --ink: #f5f2ea;
+  --ink-muted: #a9babc;
+  --ink-faint: #6e8285;
+  --edge: #1e3a40;
+  --edge-strong: #2f4f56;
+  --accent: #f5f2ea;
+  --accent-hover: #dcd8cb;
+  --on-accent: #0b1f23;
+  --danger: #e07a75;
+  --danger-soft: #3a2321;
+  --success: #7fbf9e;
+  --success-soft: #16302a;
+  --info: #86b7c2;
+  --info-soft: #143038;
+}
+
+@theme inline {
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-overlay: var(--surface-overlay);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-edge: var(--edge);
+  --color-edge-strong: var(--edge-strong);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-on-accent: var(--on-accent);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-serif: var(--font-newsreader), Georgia, serif;
+  --font-brand: var(--font-grotesk), var(--font-inter), system-ui, sans-serif;
+
+  --radius-card: 0.5rem;
+}
+
+@layer base {
+  body {
+    background-color: var(--surface);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  h1,
+  h2 {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+  }
+
+  ::selection {
+    background: var(--ink);
+    color: var(--surface);
+  }
+}
+
+@layer utilities {
+  .font-serif-display {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    letter-spacing: -0.025em;
+  }
+  .font-brand {
+    font-family: var(--font-brand);
+    letter-spacing: -0.025em;
+  }
+}
