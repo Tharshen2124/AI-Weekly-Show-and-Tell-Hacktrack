@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
-import { useAuthStore } from "@/lib/auth-store";
 import { AdminControlPanel } from "@/components/forms/admin-control-panel";
 import { MemberCard } from "@/components/cards/member-card";
 import { MeetupCard } from "@/components/cards/meetup-card";
@@ -36,8 +35,7 @@ function Section({
 }
 
 export default function DashboardPage() {
-  const token = useAuthStore((s) => s.token);
-  const summary = useQuery(api.dashboard.summary, token ? { token } : "skip");
+  const summary = useQuery(api.dashboard.summary, {});
 
   const stats = summary
     ? [

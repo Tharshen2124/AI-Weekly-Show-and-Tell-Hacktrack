@@ -1,13 +1,12 @@
-import { v } from "convex/values";
 import { query } from "./_generated/server";
-import { requireSession } from "./lib/session";
+import { requireMember } from "./lib/auth";
 import { listMeetupsInner } from "./meetups";
 import { listMembersInner } from "./members";
 
 export const summary = query({
-  args: { token: v.string() },
-  handler: async (ctx, { token }) => {
-    await requireSession(ctx, token);
+  args: {},
+  handler: async (ctx) => {
+    await requireMember(ctx);
 
     const meetupsPage = await listMeetupsInner(ctx, { page: 1, pageSize: 4 });
     const membersPage = await listMembersInner(ctx, {

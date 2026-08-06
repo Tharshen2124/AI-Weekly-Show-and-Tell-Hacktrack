@@ -5,7 +5,6 @@ import { useMutation, useQuery } from "convex/react";
 import { z } from "zod";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
-import { useAuthStore } from "@/lib/auth-store";
 import { useToast } from "@/components/providers/toast-provider";
 import { ModalLayout } from "@/components/ui/modal-layout";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -41,9 +40,8 @@ export function MeetupFormModal({ open, onClose, initial }: MeetupFormModalProps
 }
 
 function MeetupFormFields({ initial, onClose }: { initial?: MeetupInitial; onClose: () => void }) {
-  const token = useAuthStore((s) => s.token);
   const toast = useToast();
-  const nextNumber = useQuery(api.meetups.nextNumber, token ? { token } : "skip");
+  const nextNumber = useQuery(api.meetups.nextNumber, {});
   const createMeetup = useMutation(api.meetups.create);
   const updateMeetup = useMutation(api.meetups.update);
 
@@ -67,12 +65,10 @@ function MeetupFormFields({ initial, onClose }: { initial?: MeetupInitial; onClo
       toast.error(`Missing field: ${message}`);
       return;
     }
-    if (!token) return;
     setPending(true);
     try {
       if (initial) {
         await updateMeetup({
-          token,
           id: initial.id,
           number: parsed.data.number,
           date: parsed.data.date,
@@ -80,7 +76,6 @@ function MeetupFormFields({ initial, onClose }: { initial?: MeetupInitial; onClo
         toast.success("Successfully updated meetup!");
       } else {
         await createMeetup({
-          token,
           number: parsed.data.number,
           date: parsed.data.date,
         });

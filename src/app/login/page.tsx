@@ -1,13 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useMutation } from "convex/react";
+import { SignInButton, useClerk } from "@clerk/nextjs";
 import { AnimatePresence, motion } from "motion/react";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
-import { api } from "../../../convex/_generated/api";
-import { useAuthStore } from "@/lib/auth-store";
-import { useToast } from "@/components/providers/toast-provider";
+import { Loader2, TriangleAlert } from "lucide-react";
+import { useAccess } from "@/lib/use-access";
 
 const SLIDES = [
   {
@@ -16,7 +14,7 @@ const SLIDES = [
   },
   {
     gradient: "linear-gradient(160deg, #10282d 0%, #2f6b4f 120%)",
-    quote: "Idea talks become progress talks.",
+    quote: "Ideas become working demos.",
   },
   {
     gradient: "linear-gradient(160deg, #081619 0%, #0f2a2e 55%, #4f6367 140%)",
@@ -24,27 +22,39 @@ const SLIDES = [
   },
 ];
 
+function GoogleMark() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 24 24" aria-hidden>
+      <path
+        fill="#4285F4"
+        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1Z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 23c2.97 0 5.46-.98 7.28-2.65l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23Z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.84 14.11a6.6 6.6 0 0 1 0-4.22V7.05H2.18a11 11 0 0 0 0 9.9l3.66-2.84Z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 4.75c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 1.46 14.97.5 12 .5A11 11 0 0 0 2.18 7.05l3.66 2.84c.87-2.6 3.3-4.14 6.16-4.14Z"
+      />
+    </svg>
+  );
+}
+
 export default function LoginPage() {
   const router = useRouter();
-  const toast = useToast();
-  const login = useMutation(api.auth.login);
-  const { token, isHydrated, hydrate, setSession } = useAuthStore();
-
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-  const [pending, setPending] = useState(false);
-  const [slowNote, setSlowNote] = useState(false);
+  const { signOut } = useClerk();
+  const { isLoading, isSignedIn, hasAccess, member } = useAccess();
   const [slide, setSlide] = useState(0);
-  const slowTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Someone with access never stays here.
   useEffect(() => {
-    if (!isHydrated) hydrate();
-  }, [isHydrated, hydrate]);
-
-  useEffect(() => {
-    if (isHydrated && token) router.replace("/dashboard");
-  }, [isHydrated, token, router]);
+    if (hasAccess) router.replace("/dashboard");
+  }, [hasAccess, router]);
 
   // Rotating carousel, 5s interval.
   useEffect(() => {
@@ -52,28 +62,8 @@ export default function LoginPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (password === "") {
-      toast.error("Please enter the password.");
-      return;
-    }
-    setPending(true);
-    setSlowNote(false);
-    slowTimer.current = setTimeout(() => setSlowNote(true), 5000);
-    try {
-      const session = await login({ password, rememberMe });
-      setSession(session);
-      toast.success("Welcome back!");
-      router.replace("/dashboard");
-    } catch {
-      toast.error("Invalid password.");
-    } finally {
-      if (slowTimer.current) clearTimeout(slowTimer.current);
-      setSlowNote(false);
-      setPending(false);
-    }
-  };
+  // Signed in with Google but not on the roster: the whole point of the allowlist.
+  const deniedAccess = !isLoading && isSignedIn && !hasAccess;
 
   return (
     <div className="flex min-h-dvh">
@@ -118,64 +108,55 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Form half */}
+      {/* Sign-in half */}
       <div className="flex w-full items-center justify-center px-6 md:w-1/2">
         <div className="w-full max-w-sm">
           <h1 className="text-4xl">Welcome back</h1>
           <p className="mt-2 text-sm text-ink-muted">
-            Enter the shared community password to continue.
+            Sign in with the Google account you registered with.
           </p>
 
-          <form onSubmit={submit} className="mt-8 space-y-4">
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-ink-muted" htmlFor="password">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoFocus
-                  className="w-full rounded-card border border-edge bg-surface-raised px-3 py-2.5 pr-11 text-sm outline-none transition-colors focus:border-edge-strong"
-                />
-                <button
-                  type="button"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  onClick={() => setShowPassword((s) => !s)}
-                  className="absolute top-1/2 right-3 -translate-y-1/2 text-ink-faint transition-colors hover:text-ink"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
+          {deniedAccess ? (
+            <div className="mt-8 space-y-4">
+              <div
+                role="alert"
+                className="flex items-start gap-3 rounded-card border border-danger/40 bg-danger-soft p-4"
+              >
+                <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0 text-danger" />
+                <div>
+                  <p className="text-sm font-medium text-danger">
+                    You do not have access to this site
+                  </p>
+                  <p className="mt-1 text-sm text-ink-muted">
+                    Ask an organiser to add{" "}
+                    <span className="font-medium">{member?.email ?? "your account"}</span> before
+                    signing in again.
+                  </p>
+                </div>
               </div>
+              <button
+                onClick={() => signOut({ redirectUrl: "/login" })}
+                className="w-full rounded-card border border-edge px-4 py-2.5 text-sm transition-colors hover:bg-surface-sunken"
+              >
+                Sign in with a different account
+              </button>
             </div>
-
-            <label className="flex cursor-pointer items-center gap-2.5 text-sm text-ink-muted">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="h-4 w-4 accent-[var(--accent)]"
-              />
-              Remember me for 30 days
-            </label>
-
-            <button
-              type="submit"
-              disabled={pending}
-              className="flex w-full items-center justify-center gap-2 rounded-card bg-accent px-4 py-2.5 text-sm font-medium text-on-accent transition-colors hover:bg-accent-hover disabled:opacity-60"
-            >
-              {pending && <Loader2 className="h-4 w-4 animate-spin" />}
-              Log in
-            </button>
-
-            {slowNote && (
+          ) : (
+            <div className="mt-8 space-y-3">
+              <SignInButton mode="modal" forceRedirectUrl="/dashboard">
+                <button
+                  disabled={isLoading}
+                  className="flex w-full items-center justify-center gap-2.5 rounded-card border border-edge bg-surface-raised px-4 py-2.5 text-sm font-medium transition-colors hover:bg-surface-sunken disabled:opacity-60"
+                >
+                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleMark />}
+                  Continue with Google
+                </button>
+              </SignInButton>
               <p className="text-center text-xs text-ink-faint">
-                This may take a while — the backend is waking up…
+                Access is limited to registered community members.
               </p>
-            )}
-          </form>
+            </div>
+          )}
         </div>
       </div>
     </div>

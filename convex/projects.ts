@@ -1,12 +1,12 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { projectCategoryValidator } from "./schema";
-import { requireAdmin, requireSession } from "./lib/session";
+import { requireAdmin, requireMember } from "./lib/auth";
 
 export const list = query({
-  args: { token: v.string() },
-  handler: async (ctx, { token }) => {
-    await requireSession(ctx, token);
+  args: {},
+  handler: async (ctx) => {
+    await requireMember(ctx);
     const [projects, links, updates, members] = await Promise.all([
       ctx.db.query("projects").collect(),
       ctx.db.query("projectMembers").collect(),
@@ -36,9 +36,9 @@ export const list = query({
 });
 
 export const get = query({
-  args: { token: v.string(), id: v.id("projects") },
-  handler: async (ctx, { token, id }) => {
-    await requireSession(ctx, token);
+  args: { id: v.id("projects") },
+  handler: async (ctx, { id }) => {
+    await requireMember(ctx);
     const project = await ctx.db.get(id);
     if (!project) return null;
 
@@ -82,14 +82,13 @@ export const get = query({
 
 export const create = mutation({
   args: {
-    token: v.string(),
     name: v.string(),
     category: projectCategoryValidator,
     completed: v.boolean(),
     memberIds: v.array(v.id("members")),
   },
-  handler: async (ctx, { token, memberIds, ...fields }) => {
-    await requireAdmin(ctx, token);
+  handler: async (ctx, { memberIds, ...fields }) => {
+    await requireAdmin(ctx);
     if (fields.name.trim() === "") throw new Error("Project name is required");
     if (memberIds.length === 0) {
       throw new Error("A project needs at least one member");
@@ -104,15 +103,14 @@ export const create = mutation({
 
 export const update = mutation({
   args: {
-    token: v.string(),
     id: v.id("projects"),
     name: v.optional(v.string()),
     category: v.optional(projectCategoryValidator),
     completed: v.optional(v.boolean()),
     memberIds: v.optional(v.array(v.id("members"))),
   },
-  handler: async (ctx, { token, id, memberIds, ...fields }) => {
-    await requireAdmin(ctx, token);
+  handler: async (ctx, { id, memberIds, ...fields }) => {
+    await requireAdmin(ctx);
     const existing = await ctx.db.get(id);
     if (!existing) throw new Error("Project not found");
 
@@ -148,9 +146,9 @@ export const update = mutation({
 });
 
 export const remove = mutation({
-  args: { token: v.string(), id: v.id("projects") },
-  handler: async (ctx, { token, id }) => {
-    await requireAdmin(ctx, token);
+  args: { id: v.id("projects") },
+  handler: async (ctx, { id }) => {
+    await requireAdmin(ctx);
     const updates = await ctx.db
       .query("updates")
       .withIndex("by_project", (q) => q.eq("projectId", id))

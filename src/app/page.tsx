@@ -4,21 +4,17 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
-import { useAuthStore } from "@/lib/auth-store";
+import { useAccess } from "@/lib/use-access";
 
 const TITLE = "HackTrack";
 
 export default function LandingPage() {
   const router = useRouter();
-  const { token, isHydrated, hydrate } = useAuthStore();
+  const { hasAccess } = useAccess();
 
   useEffect(() => {
-    if (!isHydrated) hydrate();
-  }, [isHydrated, hydrate]);
-
-  useEffect(() => {
-    if (isHydrated && token) router.replace("/dashboard");
-  }, [isHydrated, token, router]);
+    if (hasAccess) router.replace("/dashboard");
+  }, [hasAccess, router]);
 
   return (
     <div className="relative flex min-h-dvh flex-col overflow-hidden bg-[#0b1f23] text-[#f5f2ea]">
@@ -80,7 +76,7 @@ export default function LandingPage() {
       </main>
 
       <footer className="relative z-10 border-t border-[#1e3a40] px-6 py-5 text-center text-xs text-[#6e8285]">
-        A private dashboard for members. Ask an organiser for the password.
+        A private dashboard for members. Ask an organiser for access.
       </footer>
     </div>
   );

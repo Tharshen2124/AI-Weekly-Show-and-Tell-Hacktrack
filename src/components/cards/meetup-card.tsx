@@ -7,7 +7,7 @@ import { CalendarDays, MessageSquareText, Pencil, Trash2 } from "lucide-react";
 import { FunctionReturnType } from "convex/server";
 import { api } from "../../../convex/_generated/api";
 import { formatDate } from "@/lib/format";
-import { useAuthStore } from "@/lib/auth-store";
+import { useIsAdmin } from "@/lib/use-access";
 import { useToast } from "@/components/providers/toast-provider";
 import { ModalLayout } from "@/components/ui/modal-layout";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -20,8 +20,7 @@ export function MeetupCard({ meetup }: { meetup: MeetupListItem }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
-  const isAdmin = useAuthStore((s) => s.isAdmin);
-  const token = useAuthStore((s) => s.token);
+  const isAdmin = useIsAdmin();
   const toast = useToast();
   const removeMeetup = useMutation(api.meetups.remove);
   const title = `Meetup #${meetup.number}`;
@@ -127,9 +126,8 @@ export function MeetupCard({ meetup }: { meetup: MeetupListItem }) {
           meetup.updateCount === 1 ? "update" : "updates"
         }. This cannot be undone.`}
         onConfirm={async () => {
-          if (!token) return;
           try {
-            await removeMeetup({ token, id: meetup._id });
+            await removeMeetup({ id: meetup._id });
             toast.success("Successfully deleted meetup!");
             setOpen(false);
           } catch {

@@ -2,36 +2,21 @@
 
 import { ReactNode, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "convex/react";
-import { api } from "../../../convex/_generated/api";
-import { useAuthStore } from "@/lib/auth-store";
+import { useAccess } from "@/lib/use-access";
 import { Navbar } from "@/components/nav/navbar";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const { token, isHydrated, hydrate, clearSession } = useAuthStore();
+  const { isLoading, hasAccess } = useAccess();
 
+  // Covers both "not signed in" and "signed in without access"; the login page
+  // decides which message to show.
   useEffect(() => {
-    if (!isHydrated) hydrate();
-  }, [isHydrated, hydrate]);
+    if (!isLoading && !hasAccess) router.replace("/login");
+  }, [isLoading, hasAccess, router]);
 
-  useEffect(() => {
-    if (isHydrated && !token) router.replace("/login");
-  }, [isHydrated, token, router]);
-
-  // Server-side validation of a restored cookie; UX guard only — every query
-  // re-checks the token anyway.
-  const check = useQuery(api.auth.check, token ? { token } : "skip");
-  useEffect(() => {
-    if (check && !check.valid) {
-      clearSession();
-      router.replace("/login");
-    }
-  }, [check, clearSession, router]);
-
-  // Cookies don't exist during SSR: render nothing until hydrated to avoid
-  // hydration mismatches (no spinner, no flash).
-  if (!isHydrated || !token) return null;
+  // Render nothing until access is known, so no page flashes before the redirect.
+  if (isLoading || !hasAccess) return null;
 
   return (
     <div className="min-h-dvh">

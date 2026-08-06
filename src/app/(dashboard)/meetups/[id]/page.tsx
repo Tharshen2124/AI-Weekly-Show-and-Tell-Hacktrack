@@ -7,7 +7,7 @@ import { useMutation, useQuery } from "convex/react";
 import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
-import { useAuthStore } from "@/lib/auth-store";
+import { useIsAdmin } from "@/lib/use-access";
 import { useToast } from "@/components/providers/toast-provider";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { MeetupFormModal } from "@/components/forms/meetup-form-modal";
@@ -19,9 +19,8 @@ export default function MeetupDetailPage({ params }: { params: Promise<{ id: str
   const { id } = use(params);
   const router = useRouter();
   const toast = useToast();
-  const token = useAuthStore((s) => s.token);
-  const isAdmin = useAuthStore((s) => s.isAdmin);
-  const meetup = useQuery(api.meetups.get, token ? { token, id: id as Id<"meetups"> } : "skip");
+  const isAdmin = useIsAdmin();
+  const meetup = useQuery(api.meetups.get, { id: id as Id<"meetups">  });
   const removeMeetup = useMutation(api.meetups.remove);
   const [editing, setEditing] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -127,9 +126,8 @@ export default function MeetupDetailPage({ params }: { params: Promise<{ id: str
               meetup.updateCount === 1 ? "update" : "updates"
             }. This cannot be undone.`}
             onConfirm={async () => {
-              if (!token) return;
               try {
-                await removeMeetup({ token, id: meetup._id });
+                await removeMeetup({ id: meetup._id });
                 toast.success("Successfully deleted meetup!");
                 router.push("/meetups");
               } catch {

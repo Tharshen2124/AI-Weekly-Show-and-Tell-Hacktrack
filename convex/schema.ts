@@ -3,18 +3,26 @@ import { v } from "convex/values";
 
 export const projectCategoryValidator = v.union(v.literal("solo"), v.literal("group"));
 
+/**
+ * Who may use the app. Absent means the person is on the community roster but
+ * cannot sign in — that is the default for everyone.
+ */
+export const accessLevelValidator = v.union(v.literal("member"), v.literal("admin"));
+
 // created_at is covered by Convex's built-in _creationTime; updatedAt is
 // maintained by every mutation that writes the row.
 export default defineSchema({
   members: defineTable({
     name: v.string(),
-    email: v.string(),
+    email: v.string(), // always stored lowercase; it is the Google identity key
     isActive: v.boolean(),
     registerDate: v.string(), // YYYY-MM-DD
     progressTalkNum: v.number(),
+    accessLevel: v.optional(accessLevelValidator),
     updatedAt: v.number(), // epoch ms
   })
     .index("by_name", ["name"])
+    .index("by_email", ["email"])
     .searchIndex("search_name", { searchField: "name", filterFields: ["isActive"] }),
 
   meetups: defineTable({
@@ -49,10 +57,4 @@ export default defineSchema({
     .index("by_member", ["memberId"])
     .index("by_project", ["projectId"])
     .index("by_member_and_meetup", ["memberId", "meetupId"]),
-
-  sessions: defineTable({
-    token: v.string(),
-    isAdmin: v.boolean(),
-    expiresAt: v.number(), // epoch ms
-  }).index("by_token", ["token"]),
 });

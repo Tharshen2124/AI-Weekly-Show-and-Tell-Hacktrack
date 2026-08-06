@@ -7,7 +7,7 @@ import { useMutation, useQuery } from "convex/react";
 import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
-import { useAuthStore } from "@/lib/auth-store";
+import { useIsAdmin } from "@/lib/use-access";
 import { useToast } from "@/components/providers/toast-provider";
 import { StatusPill } from "@/components/ui/status-pill";
 import { NullTextIndicator } from "@/components/ui/null-text-indicator";
@@ -21,11 +21,10 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
   const { id } = use(params);
   const router = useRouter();
   const toast = useToast();
-  const token = useAuthStore((s) => s.token);
-  const isAdmin = useAuthStore((s) => s.isAdmin);
+  const isAdmin = useIsAdmin();
   const member = useQuery(
     api.members.get,
-    token ? { token, id: id as Id<"members"> } : "skip",
+    { id: id as Id<"members">  },
   );
   const removeMember = useMutation(api.members.remove);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -166,9 +165,8 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
               member.totalUpdates === 1 ? "update" : "updates"
             }. This cannot be undone.`}
             onConfirm={async () => {
-              if (!token) return;
               try {
-                await removeMember({ token, id: member._id });
+                await removeMember({ id: member._id });
                 toast.success("Successfully deleted member!");
                 router.push("/members");
               } catch {

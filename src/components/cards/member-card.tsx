@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
-import { useAuthStore } from "@/lib/auth-store";
+import { useIsAdmin } from "@/lib/use-access";
 import { useToast } from "@/components/providers/toast-provider";
 import { ModalLayout } from "@/components/ui/modal-layout";
 import { StatusPill } from "@/components/ui/status-pill";
@@ -86,8 +86,7 @@ export function MemberCard({ member }: { member: MemberListItem }) {
 }
 
 function ProjectSection({ project }: { project: MemberProject }) {
-  const isAdmin = useAuthStore((s) => s.isAdmin);
-  const token = useAuthStore((s) => s.token);
+  const isAdmin = useIsAdmin();
   const toast = useToast();
   const removeProject = useMutation(api.projects.remove);
   const [editing, setEditing] = useState(false);
@@ -171,9 +170,8 @@ function ProjectSection({ project }: { project: MemberProject }) {
           project.updates.length === 1 ? "update" : "updates"
         }. This cannot be undone.`}
         onConfirm={async () => {
-          if (!token) return;
           try {
-            await removeProject({ token, id: project._id });
+            await removeProject({ id: project._id });
             toast.success("Successfully deleted project!");
           } catch {
             toast.error("Error occurred, project was not deleted.");
@@ -191,10 +189,9 @@ export function MemberDetailModal({
   memberId: Id<"members">;
   onClose: () => void;
 }) {
-  const token = useAuthStore((s) => s.token);
-  const isAdmin = useAuthStore((s) => s.isAdmin);
+  const isAdmin = useIsAdmin();
   const toast = useToast();
-  const member = useQuery(api.members.get, token ? { token, id: memberId } : "skip");
+  const member = useQuery(api.members.get, { id: memberId  });
   const removeMember = useMutation(api.members.remove);
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -277,6 +274,7 @@ export function MemberDetailModal({
                   isActive: member.isActive,
                   registerDate: member.registerDate,
                   progressTalkNum: member.progressTalkNum,
+                  accessLevel: member.accessLevel ?? "none",
                 }}
                 onSaved={() => setEditing(false)}
                 onCancel={() => setEditing(false)}
@@ -291,9 +289,8 @@ export function MemberDetailModal({
               member.totalUpdates === 1 ? "update" : "updates"
             }, remove them from their projects, and delete any project left with no members. This cannot be undone.`}
             onConfirm={async () => {
-              if (!token) return;
               try {
-                await removeMember({ token, id: member._id });
+                await removeMember({ id: member._id });
                 toast.success("Successfully deleted member!");
                 onClose();
               } catch {

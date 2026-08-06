@@ -7,25 +7,23 @@ import { useQuery } from "convex/react";
 import { ArrowLeft } from "lucide-react";
 import { api } from "../../../../../../convex/_generated/api";
 import { Id } from "../../../../../../convex/_generated/dataModel";
-import { useAuthStore } from "@/lib/auth-store";
+import { useAccess } from "@/lib/use-access";
 import { MemberForm } from "@/components/forms/member-form";
 import { ErrorState } from "@/components/ui/error-state";
 
 export default function MemberEditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const token = useAuthStore((s) => s.token);
-  const isAdmin = useAuthStore((s) => s.isAdmin);
-  const isHydrated = useAuthStore((s) => s.isHydrated);
+  const { isLoading, isAdmin } = useAccess();
   const member = useQuery(
     api.members.get,
-    token && isAdmin ? { token, id: id as Id<"members"> } : "skip",
+    isAdmin ? { id: id as Id<"members"> } : "skip",
   );
 
-  // Admin-only route: bounce members back to the detail page.
+  // Admin-only route: bounce non-admins back to the detail page.
   useEffect(() => {
-    if (isHydrated && token && !isAdmin) router.replace(`/members/${id}`);
-  }, [isHydrated, token, isAdmin, router, id]);
+    if (!isLoading && !isAdmin) router.replace(`/members/${id}`);
+  }, [isLoading, isAdmin, router, id]);
 
   if (!isAdmin) return null;
   if (member === null) {
@@ -54,6 +52,7 @@ export default function MemberEditPage({ params }: { params: Promise<{ id: strin
               isActive: member.isActive,
               registerDate: member.registerDate,
               progressTalkNum: member.progressTalkNum,
+              accessLevel: member.accessLevel ?? "none",
             }}
             onSaved={() => router.push(`/members/${id}`)}
             onCancel={() => router.push(`/members/${id}`)}

@@ -1,7 +1,8 @@
 import { v } from "convex/values";
-import { mutation, query, QueryCtx } from "./_generated/server";
+import { mutation, query, QueryCtx, MutationCtx } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
-import { requireAdmin, requireSession } from "./lib/session";
+import { accessLevelValidator } from "./schema";
+import { normalizeEmail, requireAdmin, requireMember } from "./lib/auth";
 import { computeMemberMetrics, MemberMetrics, UpdateForMetrics } from "./lib/metrics";
 
 const PAGE_SIZE = 24;
@@ -127,7 +128,6 @@ export async function listMembersInner(
 
 export const list = query({
   args: {
-    token: v.string(),
     isActive: v.optional(v.boolean()),
     sortBy: v.optional(
       v.union(
@@ -141,16 +141,16 @@ export const list = query({
     page: v.optional(v.number()),
     pageSize: v.optional(v.number()),
   },
-  handler: async (ctx, { token, ...args }) => {
-    await requireSession(ctx, token);
+  handler: async (ctx, args) => {
+    await requireMember(ctx);
     return await listMembersInner(ctx, args);
   },
 });
 
 export const search = query({
-  args: { token: v.string(), query: v.string() },
+  args: { query: v.string() },
   handler: async (ctx, args) => {
-    await requireSession(ctx, args.token);
+    await requireMember(ctx);
     if (args.query.trim() === "") return [];
     const results = await ctx.db
       .query("members")
@@ -163,9 +163,9 @@ export const search = query({
 });
 
 export const get = query({
-  args: { token: v.string(), id: v.id("members") },
-  handler: async (ctx, { token, id }) => {
-    await requireSession(ctx, token);
+  args: { id: v.id("members") },
+  handler: async (ctx, { id }) => {
+    await requireMember(ctx);
     const member = await ctx.db.get(id);
     if (!member) return null;
 
@@ -225,19 +225,38 @@ const memberFields = {
   isActive: v.optional(v.boolean()),
   registerDate: v.string(),
   progressTalkNum: v.optional(v.number()),
+  accessLevel: v.optional(accessLevelValidator),
 };
 
+/** Email is the Google identity key, so a duplicate would make sign-in ambiguous. */
+async function assertEmailFree(
+  ctx: MutationCtx,
+  email: string,
+  ignoreId?: Id<"members">,
+) {
+  const clash = await ctx.db
+    .query("members")
+    .withIndex("by_email", (q) => q.eq("email", email))
+    .filter((q) => (ignoreId ? q.neq(q.field("_id"), ignoreId) : true))
+    .first();
+  if (clash) throw new Error("Another member already uses that email");
+}
+
 export const create = mutation({
-  args: { token: v.string(), ...memberFields },
-  handler: async (ctx, { token, ...fields }) => {
-    await requireAdmin(ctx, token);
+  args: { ...memberFields },
+  handler: async (ctx, fields) => {
+    await requireAdmin(ctx);
     if (fields.name.trim() === "") throw new Error("Name is required");
+    const email = normalizeEmail(fields.email);
+    if (email === "") throw new Error("Email is required");
+    await assertEmailFree(ctx, email);
     return await ctx.db.insert("members", {
       name: fields.name,
-      email: fields.email,
+      email,
       isActive: fields.isActive ?? false,
       registerDate: fields.registerDate,
       progressTalkNum: fields.progressTalkNum ?? 0,
+      accessLevel: fields.accessLevel,
       updatedAt: Date.now(),
     });
   },
@@ -245,21 +264,36 @@ export const create = mutation({
 
 export const update = mutation({
   args: {
-    token: v.string(),
     id: v.id("members"),
     name: v.optional(v.string()),
     email: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
     registerDate: v.optional(v.string()),
     progressTalkNum: v.optional(v.number()),
+    accessLevel: v.optional(v.union(accessLevelValidator, v.null())),
   },
-  handler: async (ctx, { token, id, ...fields }) => {
-    await requireAdmin(ctx, token);
+  handler: async (ctx, { id, accessLevel, ...fields }) => {
+    const admin = await requireAdmin(ctx);
     const existing = await ctx.db.get(id);
     if (!existing) throw new Error("Member not found");
+
     const patch: Record<string, unknown> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) patch[key] = value;
+    }
+    if (fields.email !== undefined) {
+      const email = normalizeEmail(fields.email);
+      if (email === "") throw new Error("Email is required");
+      await assertEmailFree(ctx, email, id);
+      patch.email = email;
+    }
+    if (accessLevel !== undefined) {
+      // Guard against an admin locking every admin out of the app by demoting
+      // themselves — there would be no one left who could undo it.
+      if (admin._id === id && accessLevel !== "admin") {
+        throw new Error("You cannot remove your own admin access");
+      }
+      patch.accessLevel = accessLevel ?? undefined;
     }
     await ctx.db.patch(id, patch);
     return null;
@@ -267,9 +301,9 @@ export const update = mutation({
 });
 
 export const remove = mutation({
-  args: { token: v.string(), id: v.id("members") },
-  handler: async (ctx, { token, id }) => {
-    await requireAdmin(ctx, token);
+  args: { id: v.id("members") },
+  handler: async (ctx, { id }) => {
+    await requireAdmin(ctx);
 
     // Delete the member's updates.
     const memberUpdates = await ctx.db

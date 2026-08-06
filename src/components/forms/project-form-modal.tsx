@@ -5,7 +5,6 @@ import { useMutation, useQuery } from "convex/react";
 import { z } from "zod";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
-import { useAuthStore } from "@/lib/auth-store";
 import { useToast } from "@/components/providers/toast-provider";
 import { ModalLayout } from "@/components/ui/modal-layout";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -43,9 +42,8 @@ export function ProjectFormModal({ open, onClose, initial }: ProjectFormModalPro
 }
 
 function ProjectFormFields({ initial, onClose }: { initial?: ProjectInitial; onClose: () => void }) {
-  const token = useAuthStore((s) => s.token);
   const toast = useToast();
-  const formOptions = useQuery(api.updates.formOptions, token ? { token } : "skip");
+  const formOptions = useQuery(api.updates.formOptions, {});
   const createProject = useMutation(api.projects.create);
   const updateProject = useMutation(api.projects.update);
 
@@ -66,12 +64,10 @@ function ProjectFormFields({ initial, onClose }: { initial?: ProjectInitial; onC
       toast.error(`Missing field: ${message}`);
       return;
     }
-    if (!token) return;
     setPending(true);
     try {
       if (initial) {
         await updateProject({
-          token,
           id: initial.id,
           name: parsed.data.name,
           category,
@@ -81,7 +77,6 @@ function ProjectFormFields({ initial, onClose }: { initial?: ProjectInitial; onC
         toast.success("Successfully updated project!");
       } else {
         await createProject({
-          token,
           name: parsed.data.name,
           category,
           completed,

@@ -3,16 +3,14 @@
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
-import { useAuthStore } from "@/lib/auth-store";
 import { MeetupCard } from "@/components/cards/meetup-card";
 import { Pagination } from "@/components/ui/pagination";
 import { CardGridSkeleton } from "@/components/ui/skeletons";
 import { EmptyState } from "@/components/ui/error-state";
 
 export default function MeetupsPage() {
-  const token = useAuthStore((s) => s.token);
   const [page, setPage] = useState(1);
-  const list = useQuery(api.meetups.list, token ? { token, page } : "skip");
+  const list = useQuery(api.meetups.list, { page  });
 
   return (
     <div className="space-y-10">
