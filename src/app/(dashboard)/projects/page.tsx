@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery } from "convex/react";
 import { FunctionReturnType } from "convex/server";
-import { CircleCheck, CircleDashed, FolderPlus, Pencil, Trash2 } from "lucide-react";
+import { CircleCheck, CircleDashed, FolderPlus, Pencil, Search, Trash2, X } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
 import { useAuthStore } from "@/lib/auth-store";
 import { useToast } from "@/components/providers/toast-provider";
@@ -19,6 +19,14 @@ type ProjectItem = FunctionReturnType<typeof api.projects.list>[number];
 /** Names shown inline in the table; the rest collapse into a "+N more" hint. */
 const VISIBLE_MEMBERS = 2;
 
+/**
+ * The header and every row are separate grids, so they only line up while they
+ * share this template — including a fixed last column, since an `auto` one
+ * resolves differently for admins (two buttons) and members (nothing).
+ */
+const GRID_COLS =
+  "sm:grid-cols-[minmax(0,1fr)_8rem_minmax(0,1fr)_6rem_7rem_4rem]";
+
 function ProjectRow({ project }: { project: ProjectItem }) {
   const token = useAuthStore((s) => s.token);
   const isAdmin = useAuthStore((s) => s.isAdmin);
@@ -28,7 +36,9 @@ function ProjectRow({ project }: { project: ProjectItem }) {
   const [confirming, setConfirming] = useState(false);
 
   return (
-    <div className="grid grid-cols-1 gap-2 border-b border-edge px-4 py-3.5 last:border-b-0 sm:grid-cols-[1fr_8rem_1fr_6rem_6rem_auto] sm:items-center sm:gap-4">
+    <div
+      className={`grid grid-cols-1 gap-2 border-b border-edge px-4 py-3.5 last:border-b-0 sm:items-center sm:gap-4 ${GRID_COLS}`}
+    >
       <Link
         href={`/projects/${project._id}`}
         title={project.name}
@@ -59,11 +69,11 @@ function ProjectRow({ project }: { project: ProjectItem }) {
           </span>
         )}
       </span>
-      <span className="text-sm text-ink-muted tabular-nums">
+      <span className="text-sm whitespace-nowrap text-ink-muted tabular-nums">
         {project.updateCount} {project.updateCount === 1 ? "update" : "updates"}
       </span>
       <span
-        className={`inline-flex items-center gap-1.5 text-sm ${
+        className={`inline-flex items-center gap-1.5 text-sm whitespace-nowrap ${
           project.completed ? "text-success" : "text-ink-faint"
         }`}
       >
@@ -75,7 +85,7 @@ function ProjectRow({ project }: { project: ProjectItem }) {
         {project.completed ? "Completed" : "Ongoing"}
       </span>
       {isAdmin ? (
-        <span className="flex items-center gap-1">
+        <span className="flex items-center gap-1 sm:justify-end">
           <button
             aria-label={`Edit ${project.name}`}
             onClick={() => setEditing(true)}
@@ -132,6 +142,11 @@ export default function ProjectsPage() {
   const isAdmin = useAuthStore((s) => s.isAdmin);
   const projects = useQuery(api.projects.list, token ? { token } : "skip");
   const [creating, setCreating] = useState(false);
+  const [search, setSearch] = useState("");
+
+  // The list query returns every project, so filtering stays on the client.
+  const query = search.trim().toLowerCase();
+  const visible = projects?.filter((p) => p.name.toLowerCase().includes(query));
 
   return (
     <div className="space-y-6">
@@ -153,28 +168,52 @@ export default function ProjectsPage() {
         )}
       </div>
 
+      {/* Search */}
+      <div className="relative max-w-md">
+        <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-ink-faint" />
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search projects by name…"
+          className="w-full rounded-card border border-edge bg-surface-raised py-2.5 pr-9 pl-9 text-sm outline-none transition-colors placeholder:text-ink-faint focus:border-edge-strong"
+        />
+        {search && (
+          <button
+            aria-label="Clear search"
+            onClick={() => setSearch("")}
+            className="absolute top-1/2 right-3 -translate-y-1/2 text-ink-faint hover:text-ink"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
       <div className="overflow-hidden rounded-card border border-edge bg-surface-raised">
-        <div className="hidden grid-cols-[1fr_8rem_1fr_6rem_6rem_auto] gap-4 border-b border-edge bg-surface-sunken px-4 py-2.5 text-[11px] font-medium tracking-wider text-ink-faint uppercase sm:grid">
+        <div
+          className={`hidden gap-4 border-b border-edge bg-surface-sunken px-4 py-2.5 text-[11px] font-medium tracking-wider text-ink-faint uppercase sm:grid ${GRID_COLS}`}
+        >
           <span>Name</span>
           <span>Category</span>
           <span>Members</span>
           <span>Updates</span>
           <span>Status</span>
-          <span className="w-16" />
+          <span />
         </div>
-        {projects === undefined ? (
+        {visible === undefined ? (
           <>
             <ProjectRowSkeleton />
             <ProjectRowSkeleton />
             <ProjectRowSkeleton />
             <ProjectRowSkeleton />
           </>
-        ) : projects.length === 0 ? (
+        ) : visible.length === 0 ? (
           <div className="p-4">
-            <EmptyState message="No projects yet." />
+            <EmptyState
+              message={query ? `No projects match “${search.trim()}”.` : "No projects yet."}
+            />
           </div>
         ) : (
-          projects.map((project) => <ProjectRow key={project._id} project={project} />)
+          visible.map((project) => <ProjectRow key={project._id} project={project} />)
         )}
       </div>
 
