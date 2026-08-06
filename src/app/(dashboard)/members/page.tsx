@@ -12,20 +12,17 @@ import { Pagination } from "@/components/ui/pagination";
 import { CardGridSkeleton } from "@/components/ui/skeletons";
 import { EmptyState } from "@/components/ui/error-state";
 import {
-  ALL_MEMBER_STATUSES,
+  MEMBER_ACTIVE_FILTER_LABELS,
   MEMBER_SORT_LABELS,
-  MEMBER_STATUS_LABELS,
+  MemberActiveFilter,
   MemberSort,
-  MemberStatus,
 } from "@/lib/labels";
-
-const DEFAULT_STATUSES: MemberStatus[] = ["active", "socially_active"];
 
 export default function MembersPage() {
   const token = useAuthStore((s) => s.token);
   const isAdmin = useAuthStore((s) => s.isAdmin);
 
-  const [statuses, setStatuses] = useState<MemberStatus[]>(DEFAULT_STATUSES);
+  const [activeFilter, setActiveFilter] = useState<MemberActiveFilter>("active");
   const [sortBy, setSortBy] = useState<MemberSort>("recent_talks");
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState("");
@@ -53,47 +50,36 @@ export default function MembersPage() {
 
   const list = useQuery(
     api.members.list,
-    token && !searching ? { token, statuses, sortBy, page } : "skip",
+    token && !searching
+      ? {
+          token,
+          isActive: activeFilter === "all" ? undefined : activeFilter === "active",
+          sortBy,
+          page,
+        }
+      : "skip",
   );
   const searchResults = useQuery(
     api.members.search,
     token && searching ? { token, query: debouncedSearch } : "skip",
   );
 
-  const setStatusesAndReset = (next: MemberStatus[]) => {
-    setStatuses(next);
+  const setFilterAndReset = (next: MemberActiveFilter) => {
+    setActiveFilter(next);
     setPage(1);
   };
-  const toggleStatus = (status: MemberStatus) => {
-    setStatusesAndReset(
-      statuses.includes(status) ? statuses.filter((s) => s !== status) : [...statuses, status],
-    );
-  };
 
-  const allSelected = statuses.length === 0;
   const members = searching ? searchResults : list?.data;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-4xl">Members</h1>
-        {/* Active filter chips at md+ */}
+        {/* Active filter chip at md+ */}
         <div className="hidden flex-wrap gap-1.5 md:flex">
-          {(allSelected ? [] : statuses).map((status) => (
-            <button
-              key={status}
-              onClick={() => toggleStatus(status)}
-              className="inline-flex items-center gap-1 rounded-full border border-edge-strong bg-surface-sunken px-2.5 py-1 text-xs text-ink-muted transition-colors hover:text-ink"
-            >
-              {MEMBER_STATUS_LABELS[status]}
-              <X className="h-3 w-3" />
-            </button>
-          ))}
-          {allSelected && (
-            <span className="rounded-full border border-edge px-2.5 py-1 text-xs text-ink-faint">
-              All statuses
-            </span>
-          )}
+          <span className="rounded-full border border-edge px-2.5 py-1 text-xs text-ink-faint">
+            {MEMBER_ACTIVE_FILTER_LABELS[activeFilter]}
+          </span>
         </div>
 
         <div className="ml-auto flex items-center gap-2">
@@ -118,26 +104,21 @@ export default function MembersPage() {
             {filterOpen && (
               <div className="absolute right-0 z-30 mt-1 w-64 rounded-card border border-edge bg-surface-overlay p-3 shadow-xl">
                 <p className="mb-2 text-[11px] font-medium tracking-wider text-ink-faint uppercase">
-                  Status
+                  Show
                 </p>
                 <div className="space-y-1">
-                  <button
-                    onClick={() => setStatusesAndReset([])}
-                    className="flex w-full items-center justify-between rounded px-2 py-1.5 text-sm hover:bg-surface-sunken"
-                  >
-                    All
-                    {allSelected && <Check className="h-4 w-4 text-success" />}
-                  </button>
-                  {ALL_MEMBER_STATUSES.map((status) => (
-                    <button
-                      key={status}
-                      onClick={() => toggleStatus(status)}
-                      className="flex w-full items-center justify-between rounded px-2 py-1.5 text-sm hover:bg-surface-sunken"
-                    >
-                      {MEMBER_STATUS_LABELS[status]}
-                      {statuses.includes(status) && <Check className="h-4 w-4 text-success" />}
-                    </button>
-                  ))}
+                  {(Object.keys(MEMBER_ACTIVE_FILTER_LABELS) as MemberActiveFilter[]).map(
+                    (filter) => (
+                      <button
+                        key={filter}
+                        onClick={() => setFilterAndReset(filter)}
+                        className="flex w-full items-center justify-between rounded px-2 py-1.5 text-sm hover:bg-surface-sunken"
+                      >
+                        {MEMBER_ACTIVE_FILTER_LABELS[filter]}
+                        {activeFilter === filter && <Check className="h-4 w-4 text-success" />}
+                      </button>
+                    ),
+                  )}
                 </div>
                 <p className="mt-3 mb-2 border-t border-edge pt-3 text-[11px] font-medium tracking-wider text-ink-faint uppercase">
                   Sort by
@@ -189,7 +170,7 @@ export default function MembersPage() {
       ) : members.length === 0 ? (
         <EmptyState
           message={
-            searching ? `No members match “${debouncedSearch}”.` : "No members match these filters."
+            searching ? `No members match “${debouncedSearch}”.` : "No members match this filter."
           }
         />
       ) : (

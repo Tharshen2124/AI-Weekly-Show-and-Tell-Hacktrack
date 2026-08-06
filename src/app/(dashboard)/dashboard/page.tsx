@@ -53,7 +53,7 @@ export default function DashboardPage() {
       <div>
         <h1 className="text-4xl">Dashboard</h1>
         <p className="mt-1.5 text-sm text-ink-muted">
-          The community at a glance — meetups, hackathons, and who&apos;s been talking.
+          The community at a glance — meetups, projects, and who&apos;s been talking.
         </p>
       </div>
 
@@ -80,20 +80,6 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
             {summary.recentMeetups.map((meetup) => (
               <MeetupCard key={meetup._id} meetup={meetup} />
-            ))}
-          </div>
-        )}
-      </Section>
-
-      <Section title="Hackathons" viewAllHref="/meetups">
-        {!summary ? (
-          <CardGridSkeleton count={4} kind="meetup" />
-        ) : summary.recentHackathons.length === 0 ? (
-          <EmptyState message="No hackathons recorded yet." />
-        ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {summary.recentHackathons.map((meetup) => (
-              <MeetupCard key={meetup._id} meetup={meetup} variant="hackathon" />
             ))}
           </div>
         )}

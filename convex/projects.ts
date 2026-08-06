@@ -27,10 +27,56 @@ export const list = query({
             const m = memberById.get(l.memberId);
             return m ? { id: m._id, name: m.name } : null;
           })
-          .filter((m): m is { id: (typeof members)[number]["_id"]; name: string } => m !== null),
+          .filter((m): m is { id: (typeof members)[number]["_id"]; name: string } => m !== null)
+          .sort((a, b) => a.name.localeCompare(b.name)),
         updateCount: updateCountByProject.get(p._id) ?? 0,
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
+  },
+});
+
+export const get = query({
+  args: { token: v.string(), id: v.id("projects") },
+  handler: async (ctx, { token, id }) => {
+    await requireSession(ctx, token);
+    const project = await ctx.db.get(id);
+    if (!project) return null;
+
+    const links = await ctx.db
+      .query("projectMembers")
+      .withIndex("by_project", (q) => q.eq("projectId", id))
+      .collect();
+    const members = [];
+    for (const link of links) {
+      const m = await ctx.db.get(link.memberId);
+      if (m) members.push({ id: m._id, name: m.name });
+    }
+    members.sort((a, b) => a.name.localeCompare(b.name));
+
+    const projectUpdates = await ctx.db
+      .query("updates")
+      .withIndex("by_project", (q) => q.eq("projectId", id))
+      .collect();
+    const updates = [];
+    for (const u of projectUpdates) {
+      const [meetup, member] = await Promise.all([
+        ctx.db.get(u.meetupId),
+        ctx.db.get(u.memberId),
+      ]);
+      if (!meetup) continue;
+      updates.push({
+        _id: u._id,
+        description: u.description,
+        memberId: u.memberId,
+        memberName: member?.name ?? "Unknown",
+        meetupId: u.meetupId,
+        meetupNumber: meetup.number,
+        meetupDate: meetup.date,
+      });
+    }
+    updates.sort((a, b) => b.meetupDate.localeCompare(a.meetupDate));
+
+    return { ...project, members, updates };
   },
 });
 
@@ -48,7 +94,7 @@ export const create = mutation({
     if (memberIds.length === 0) {
       throw new Error("A project needs at least one member");
     }
-    const projectId = await ctx.db.insert("projects", fields);
+    const projectId = await ctx.db.insert("projects", { ...fields, updatedAt: Date.now() });
     for (const memberId of memberIds) {
       await ctx.db.insert("projectMembers", { projectId, memberId });
     }
@@ -70,13 +116,11 @@ export const update = mutation({
     const existing = await ctx.db.get(id);
     if (!existing) throw new Error("Project not found");
 
-    const patch: Record<string, unknown> = {};
+    const patch: Record<string, unknown> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) patch[key] = value;
     }
-    if (Object.keys(patch).length > 0) {
-      await ctx.db.patch(id, patch);
-    }
+    await ctx.db.patch(id, patch);
 
     if (memberIds !== undefined) {
       if (memberIds.length === 0) {

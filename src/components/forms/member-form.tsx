@@ -8,27 +8,27 @@ import { Id } from "../../../convex/_generated/dataModel";
 import { useAuthStore } from "@/lib/auth-store";
 import { useToast } from "@/components/providers/toast-provider";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { SearchableDropdown } from "@/components/ui/searchable-dropdown";
 import { InlineErrorBanner } from "@/components/ui/error-state";
 import { Field, inputClass } from "./field";
-import { ALL_MEMBER_STATUSES, MEMBER_STATUS_LABELS, MemberStatus } from "@/lib/labels";
 import { todayISO } from "@/lib/format";
 
 const schema = z.object({
   name: z.string().trim().min(1, "Name is required"),
   email: z.string().trim().email("A valid email is required"),
   registerDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Register date is required"),
+  progressTalkNum: z
+    .number()
+    .int("Progress talks must be a whole number")
+    .min(0, "Progress talks cannot be negative"),
 });
 
 export interface MemberFormValues {
   id?: Id<"members">;
   name: string;
   email: string;
-  contactNumber: string;
-  discordTag: string;
-  status: MemberStatus;
-  comment: string;
+  isActive: boolean;
   registerDate: string;
+  progressTalkNum: number;
 }
 
 export function MemberForm({
@@ -49,11 +49,9 @@ export function MemberForm({
     initial ?? {
       name: "",
       email: "",
-      contactNumber: "",
-      discordTag: "",
-      status: "registered",
-      comment: "",
+      isActive: false,
       registerDate: todayISO(),
+      progressTalkNum: 0,
     },
   );
   const [error, setError] = useState<string | null>(null);
@@ -79,11 +77,9 @@ export function MemberForm({
         token,
         name: parsed.data.name,
         email: parsed.data.email,
-        contactNumber: values.contactNumber.trim() || undefined,
-        discordTag: values.discordTag.trim() || undefined,
-        status: values.status,
-        comment: values.comment.trim() || undefined,
+        isActive: values.isActive,
         registerDate: parsed.data.registerDate,
+        progressTalkNum: parsed.data.progressTalkNum,
       };
       if (initial?.id) {
         await updateMember({ ...payload, id: initial.id });
@@ -115,37 +111,6 @@ export function MemberForm({
             className={inputClass}
           />
         </Field>
-        <Field label="Contact number">
-          <input
-            value={values.contactNumber}
-            onChange={(e) => set("contactNumber", e.target.value)}
-            placeholder="Optional"
-            className={inputClass}
-          />
-        </Field>
-        <Field label="Discord tag">
-          <input
-            value={values.discordTag}
-            onChange={(e) => set("discordTag", e.target.value)}
-            placeholder="Optional"
-            className={inputClass}
-          />
-        </Field>
-        <Field label="Status">
-          <SearchableDropdown
-            groups={[
-              {
-                label: "",
-                options: ALL_MEMBER_STATUSES.map((s) => ({
-                  value: s,
-                  label: MEMBER_STATUS_LABELS[s],
-                })),
-              },
-            ]}
-            value={values.status}
-            onChange={(v) => v && set("status", v as MemberStatus)}
-          />
-        </Field>
         <Field label="Register date">
           <input
             type="date"
@@ -154,16 +119,25 @@ export function MemberForm({
             className={inputClass}
           />
         </Field>
+        <Field label="Progress talks given">
+          <input
+            type="number"
+            min={0}
+            value={values.progressTalkNum}
+            onChange={(e) => set("progressTalkNum", Number(e.target.value))}
+            className={inputClass}
+          />
+        </Field>
       </div>
-      <Field label="Comment">
-        <textarea
-          value={values.comment}
-          onChange={(e) => set("comment", e.target.value)}
-          rows={3}
-          placeholder="Optional"
-          className={inputClass}
+      <label className="flex cursor-pointer items-center gap-2.5 text-sm">
+        <input
+          type="checkbox"
+          checked={values.isActive}
+          onChange={(e) => set("isActive", e.target.checked)}
+          className="h-4 w-4 accent-[var(--accent)]"
         />
-      </Field>
+        Is this member active?
+      </label>
       <div className="flex justify-end gap-2 pt-2">
         <button
           type="button"

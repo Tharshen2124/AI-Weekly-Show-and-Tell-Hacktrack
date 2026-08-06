@@ -9,7 +9,6 @@ import { useAuthStore } from "@/lib/auth-store";
 import { useToast } from "@/components/providers/toast-provider";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { UpdateFormModal } from "@/components/forms/update-form-modal";
-import { UpdateCategory } from "@/lib/labels";
 
 interface UpdateAdminActionsProps {
   update: {
@@ -17,7 +16,6 @@ interface UpdateAdminActionsProps {
     memberId: Id<"members">;
     projectId: Id<"projects">;
     meetupId: Id<"meetups">;
-    category: UpdateCategory;
     description: string;
   };
 }

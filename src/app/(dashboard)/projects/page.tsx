@@ -16,6 +16,9 @@ import { PROJECT_CATEGORY_LABELS } from "@/lib/labels";
 
 type ProjectItem = FunctionReturnType<typeof api.projects.list>[number];
 
+/** Names shown inline in the table; the rest collapse into a "+N more" hint. */
+const VISIBLE_MEMBERS = 2;
+
 function ProjectRow({ project }: { project: ProjectItem }) {
   const token = useAuthStore((s) => s.token);
   const isAdmin = useAuthStore((s) => s.isAdmin);
@@ -26,14 +29,22 @@ function ProjectRow({ project }: { project: ProjectItem }) {
 
   return (
     <div className="grid grid-cols-1 gap-2 border-b border-edge px-4 py-3.5 last:border-b-0 sm:grid-cols-[1fr_8rem_1fr_6rem_6rem_auto] sm:items-center sm:gap-4">
-      <div className="flex items-center gap-2">
-        <span className="font-medium">{project.name}</span>
-      </div>
+      <Link
+        href={`/projects/${project._id}`}
+        title={project.name}
+        className="min-w-0 truncate font-medium underline-offset-4 hover:underline"
+      >
+        {project.name}
+      </Link>
       <span className="text-sm text-ink-muted">{PROJECT_CATEGORY_LABELS[project.category]}</span>
-      <span className="text-sm text-ink-muted">
+      {/* Only the first few names fit a row; the rest are on the project page. */}
+      <span
+        className="min-w-0 truncate text-sm text-ink-muted"
+        title={project.members.map((m) => m.name).join(", ")}
+      >
         {project.members.length === 0
           ? "—"
-          : project.members.map((m, i) => (
+          : project.members.slice(0, VISIBLE_MEMBERS).map((m, i) => (
               <span key={m.id}>
                 {i > 0 && ", "}
                 <Link href={`/members/${m.id}`} className="underline-offset-4 hover:underline">
@@ -41,6 +52,12 @@ function ProjectRow({ project }: { project: ProjectItem }) {
                 </Link>
               </span>
             ))}
+        {project.members.length > VISIBLE_MEMBERS && (
+          <span className="text-ink-faint">
+            {" "}
+            +{project.members.length - VISIBLE_MEMBERS} more
+          </span>
+        )}
       </span>
       <span className="text-sm text-ink-muted tabular-nums">
         {project.updateCount} {project.updateCount === 1 ? "update" : "updates"}

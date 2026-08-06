@@ -1,42 +1,17 @@
-export const MEMBER_STATUS_LABELS = {
-  registered: "Registered",
-  contacted: "Contacted",
-  first_talk_given: "First Talk Given",
-  never_active: "Never Active",
-  active: "Active",
-  socially_active: "Socially Active",
-  was_active: "Was Active",
-  was_socially_active: "Was Socially Active",
-  terminated: "Terminated",
-  duplicate: "Duplicate",
-} as const;
-
-export type MemberStatus = keyof typeof MEMBER_STATUS_LABELS;
-
-export const ALL_MEMBER_STATUSES = Object.keys(MEMBER_STATUS_LABELS) as MemberStatus[];
-
-export const MEETUP_CATEGORY_LABELS = {
-  regular_meetup: "Regular Meetup",
-  hackathon: "Hackathon",
-  off_record_meetup: "Off-Record Meetup",
-} as const;
-
-export type MeetupCategory = keyof typeof MEETUP_CATEGORY_LABELS;
-
 export const PROJECT_CATEGORY_LABELS = {
-  project: "Project",
-  mini_project: "Mini Project",
-  group_project: "Group Project",
+  solo: "Solo",
+  group: "Group",
 } as const;
 
 export type ProjectCategory = keyof typeof PROJECT_CATEGORY_LABELS;
 
-export const UPDATE_CATEGORY_LABELS = {
-  idea_talk: "Idea Talk",
-  progress_talk: "Progress Talk",
+export const MEMBER_ACTIVE_FILTER_LABELS = {
+  active: "Active",
+  inactive: "Inactive",
+  all: "All members",
 } as const;
 
-export type UpdateCategory = keyof typeof UPDATE_CATEGORY_LABELS;
+export type MemberActiveFilter = keyof typeof MEMBER_ACTIVE_FILTER_LABELS;
 
 export const MEMBER_SORT_LABELS = {
   recent_talks: "Recently active",

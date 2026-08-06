@@ -1,14 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { computeMemberMetrics, daysBetween, formatDuration, UpdateForMetrics } from "./metrics";
+import { computeMemberMetrics, daysBetween, formatDuration } from "./metrics";
 
 const TODAY = "2026-07-31";
 
-function update(
-  meetupDate: string,
-  category: UpdateForMetrics["category"] = "progress_talk",
-  meetupCategory: UpdateForMetrics["meetupCategory"] = "regular_meetup",
-): UpdateForMetrics {
-  return { category, meetupDate, meetupCategory };
+function update(meetupDate: string) {
+  return { meetupDate };
 }
 
 describe("daysBetween", () => {
@@ -33,19 +29,13 @@ describe("formatDuration", () => {
 });
 
 describe("computeMemberMetrics", () => {
-  it("counts talk categories and totals", () => {
+  it("counts total updates", () => {
     const metrics = computeMemberMetrics({
       registerDate: "2026-01-01",
-      updates: [
-        update("2026-02-01", "idea_talk"),
-        update("2026-03-01", "progress_talk"),
-        update("2026-04-01", "progress_talk"),
-      ],
-      regularMeetupDates: [],
+      updates: [update("2026-02-01"), update("2026-03-01"), update("2026-04-01")],
+      meetupDates: [],
       today: TODAY,
     });
-    expect(metrics.ideaTalkCount).toBe(1);
-    expect(metrics.progressTalkCount).toBe(2);
     expect(metrics.totalUpdates).toBe(3);
   });
 
@@ -54,7 +44,7 @@ describe("computeMemberMetrics", () => {
     const metrics = computeMemberMetrics({
       registerDate: "2026-06-01",
       updates: [update("2025-07-31")],
-      regularMeetupDates: [],
+      meetupDates: [],
       today: TODAY,
     });
     expect(metrics.durationActive).toBe("1 year");
@@ -64,7 +54,7 @@ describe("computeMemberMetrics", () => {
     const metrics = computeMemberMetrics({
       registerDate: "2026-07-20",
       updates: [],
-      regularMeetupDates: [],
+      meetupDates: [],
       today: TODAY,
     });
     expect(metrics.durationActive).toBe("New");
@@ -75,7 +65,7 @@ describe("computeMemberMetrics", () => {
       registerDate: "2026-01-01",
       // Gaps: 30 days and 40 days -> avg 35.
       updates: [update("2026-01-10"), update("2026-02-09"), update("2026-03-21")],
-      regularMeetupDates: [],
+      meetupDates: [],
       today: TODAY,
     });
     expect(metrics.avgTimeBetweenTalks).toBe("~35 days");
@@ -85,58 +75,30 @@ describe("computeMemberMetrics", () => {
     const metrics = computeMemberMetrics({
       registerDate: "2026-01-01",
       updates: [update("2026-01-10")],
-      regularMeetupDates: [],
+      meetupDates: [],
       today: TODAY,
     });
     expect(metrics.avgTimeBetweenTalks).toBeNull();
   });
 
-  it("counts regular meetups strictly after the last talk", () => {
+  it("counts meetups strictly after the last talk", () => {
     const metrics = computeMemberMetrics({
       registerDate: "2026-01-01",
       updates: [update("2026-03-01")],
       // On the talk date (excluded), after (2 counted), before (excluded).
-      regularMeetupDates: ["2026-02-01", "2026-03-01", "2026-04-01", "2026-05-01"],
+      meetupDates: ["2026-02-01", "2026-03-01", "2026-04-01", "2026-05-01"],
       today: TODAY,
     });
     expect(metrics.meetupsSinceLastTalk).toBe(2);
   });
 
-  it("counts regular meetups since registerDate when the member never talked", () => {
+  it("counts meetups since registerDate when the member never talked", () => {
     const metrics = computeMemberMetrics({
       registerDate: "2026-03-01",
       updates: [],
-      regularMeetupDates: ["2026-02-01", "2026-03-01", "2026-04-01"],
+      meetupDates: ["2026-02-01", "2026-03-01", "2026-04-01"],
       today: TODAY,
     });
     expect(metrics.meetupsSinceLastTalk).toBe(2);
-  });
-
-  it("excludes off_record_meetup from every metric", () => {
-    const metrics = computeMemberMetrics({
-      registerDate: "2026-01-01",
-      updates: [
-        update("2026-02-01", "progress_talk"),
-        // Later off-record talk must not count as the "last talk" nor in totals.
-        update("2026-06-01", "idea_talk", "off_record_meetup"),
-      ],
-      regularMeetupDates: ["2026-03-01", "2026-04-01"],
-      today: TODAY,
-    });
-    expect(metrics.totalUpdates).toBe(1);
-    expect(metrics.ideaTalkCount).toBe(0);
-    expect(metrics.meetupsSinceLastTalk).toBe(2);
-    expect(metrics.avgTimeBetweenTalks).toBeNull();
-  });
-
-  it("hackathon talks count as talks but not as regular meetups", () => {
-    const metrics = computeMemberMetrics({
-      registerDate: "2026-01-01",
-      updates: [update("2026-02-01", "progress_talk", "hackathon")],
-      regularMeetupDates: ["2026-03-01"],
-      today: TODAY,
-    });
-    expect(metrics.totalUpdates).toBe(1);
-    expect(metrics.meetupsSinceLastTalk).toBe(1);
   });
 });

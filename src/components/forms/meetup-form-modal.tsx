@@ -9,9 +9,8 @@ import { useAuthStore } from "@/lib/auth-store";
 import { useToast } from "@/components/providers/toast-provider";
 import { ModalLayout } from "@/components/ui/modal-layout";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { SearchableDropdown } from "@/components/ui/searchable-dropdown";
 import { InlineErrorBanner } from "@/components/ui/error-state";
-import { Field, inputClass, RadioRow } from "./field";
+import { Field, inputClass } from "./field";
 import { todayISO } from "@/lib/format";
 
 const schema = z.object({
@@ -19,14 +18,10 @@ const schema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date is required"),
 });
 
-type MeetupCategory = "regular_meetup" | "hackathon" | "off_record_meetup";
-
 interface MeetupInitial {
   id: Id<"meetups">;
   number: number;
   date: string;
-  category: MeetupCategory;
-  hostId: Id<"members"> | null;
 }
 
 interface MeetupFormModalProps {
@@ -48,33 +43,19 @@ export function MeetupFormModal({ open, onClose, initial }: MeetupFormModalProps
 function MeetupFormFields({ initial, onClose }: { initial?: MeetupInitial; onClose: () => void }) {
   const token = useAuthStore((s) => s.token);
   const toast = useToast();
-  const nextNumbers = useQuery(api.meetups.nextNumbers, token ? { token } : "skip");
-  const hostOptions = useQuery(api.meetups.hostOptions, token ? { token } : "skip");
+  const nextNumber = useQuery(api.meetups.nextNumber, token ? { token } : "skip");
   const createMeetup = useMutation(api.meetups.create);
   const updateMeetup = useMutation(api.meetups.update);
 
-  const [category, setCategory] = useState<MeetupCategory>(initial?.category ?? "regular_meetup");
-  // null = untouched; the pre-fill is derived so it re-fills when the category changes (§3.2).
+  // null = untouched; new meetups pre-fill with the next sequence number.
   const [numberInput, setNumberInput] = useState<string | null>(
     initial ? String(initial.number) : null,
   );
   const [date, setDate] = useState(initial?.date ?? todayISO());
-  const [hostId, setHostId] = useState<string | null>(initial?.hostId ?? null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  const prefill =
-    nextNumbers === undefined
-      ? null
-      : category === "hackathon"
-        ? nextNumbers.hackathon
-        : nextNumbers.regularMeetup;
-  const number = numberInput ?? (prefill !== null ? String(prefill) : "");
-
-  const onCategoryChange = (c: MeetupCategory) => {
-    setCategory(c);
-    if (!initial) setNumberInput(null); // re-pre-fill for the new category
-  };
+  const number = numberInput ?? (nextNumber !== undefined ? String(nextNumber) : "");
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,8 +76,6 @@ function MeetupFormFields({ initial, onClose }: { initial?: MeetupInitial; onClo
           id: initial.id,
           number: parsed.data.number,
           date: parsed.data.date,
-          category,
-          hostId: (hostId as Id<"members"> | null) ?? null,
         });
         toast.success("Successfully updated meetup!");
       } else {
@@ -104,8 +83,6 @@ function MeetupFormFields({ initial, onClose }: { initial?: MeetupInitial; onClo
           token,
           number: parsed.data.number,
           date: parsed.data.date,
-          category,
-          hostId: (hostId as Id<"members"> | null) ?? undefined,
         });
         toast.success("Successfully added meetup!");
       }
@@ -117,36 +94,9 @@ function MeetupFormFields({ initial, onClose }: { initial?: MeetupInitial; onClo
     }
   };
 
-  const hostGroups = hostOptions
-    ? [
-        {
-          label: "Yet To Host",
-          options: hostOptions.yetToHost.map((m) => ({ value: m.id, label: m.name })),
-        },
-        {
-          label: "Have Hosted",
-          options: hostOptions.haveHosted.map((m) => ({ value: m.id, label: m.name })),
-        },
-      ]
-    : [];
-
   return (
     <form onSubmit={submit} className="space-y-4">
       {error && <InlineErrorBanner message={error} />}
-      <Field label="Category">
-        <RadioRow
-          name="meetup-category"
-          value={category}
-          onChange={onCategoryChange}
-          options={[
-            { value: "regular_meetup", label: "Regular Meetup" },
-            { value: "hackathon", label: "Hackathon" },
-            ...(initial?.category === "off_record_meetup"
-              ? [{ value: "off_record_meetup" as const, label: "Off-Record" }]
-              : []),
-          ]}
-        />
-      </Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Number">
           <input
@@ -166,15 +116,6 @@ function MeetupFormFields({ initial, onClose }: { initial?: MeetupInitial; onClo
           />
         </Field>
       </div>
-      <Field label="Host">
-        <SearchableDropdown
-          groups={hostGroups}
-          value={hostId}
-          onChange={setHostId}
-          placeholder="Select a host (optional)"
-          clearable
-        />
-      </Field>
       <div className="flex justify-end gap-2 pt-2">
         <button
           type="button"

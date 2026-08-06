@@ -1,6 +1,5 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { updateCategoryValidator } from "./schema";
 import { requireAdmin, requireSession } from "./lib/session";
 import { Id } from "./_generated/dataModel";
 import { MutationCtx } from "./_generated/server";
@@ -27,13 +26,12 @@ export const create = mutation({
     meetupId: v.id("meetups"),
     projectId: v.id("projects"),
     memberId: v.id("members"),
-    category: updateCategoryValidator,
     description: v.string(),
   },
   handler: async (ctx, { token, ...fields }) => {
     await requireAdmin(ctx, token);
     await assertMemberOnProject(ctx, fields.memberId, fields.projectId);
-    return await ctx.db.insert("updates", fields);
+    return await ctx.db.insert("updates", { ...fields, updatedAt: Date.now() });
   },
 });
 
@@ -44,7 +42,6 @@ export const update = mutation({
     meetupId: v.optional(v.id("meetups")),
     projectId: v.optional(v.id("projects")),
     memberId: v.optional(v.id("members")),
-    category: v.optional(updateCategoryValidator),
     description: v.optional(v.string()),
   },
   handler: async (ctx, { token, id, ...fields }) => {
@@ -56,7 +53,7 @@ export const update = mutation({
     const projectId = fields.projectId ?? existing.projectId;
     await assertMemberOnProject(ctx, memberId, projectId);
 
-    const patch: Record<string, unknown> = {};
+    const patch: Record<string, unknown> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) patch[key] = value;
     }
@@ -100,7 +97,7 @@ export const formOptions = query({
       members: memberOptions,
       meetups: meetups
         .sort((a, b) => b.date.localeCompare(a.date))
-        .map((m) => ({ id: m._id, date: m.date, number: m.number, category: m.category })),
+        .map((m) => ({ id: m._id, date: m.date, number: m.number })),
     };
   },
 });

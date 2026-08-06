@@ -11,8 +11,7 @@ import { ModalLayout } from "@/components/ui/modal-layout";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { SearchableDropdown } from "@/components/ui/searchable-dropdown";
 import { InlineErrorBanner } from "@/components/ui/error-state";
-import { Field, inputClass, RadioRow } from "./field";
-import { MEETUP_CATEGORY_LABELS, UpdateCategory } from "@/lib/labels";
+import { Field, inputClass } from "./field";
 import { formatDate } from "@/lib/format";
 
 const schema = z.object({
@@ -27,7 +26,6 @@ interface UpdateInitial {
   memberId: Id<"members">;
   projectId: Id<"projects">;
   meetupId: Id<"meetups">;
-  category: UpdateCategory;
   description: string;
 }
 
@@ -53,7 +51,6 @@ function UpdateFormFields({ initial, onClose }: { initial?: UpdateInitial; onClo
   const createUpdate = useMutation(api.updates.create);
   const updateUpdate = useMutation(api.updates.update);
 
-  const [category, setCategory] = useState<UpdateCategory>(initial?.category ?? "progress_talk");
   const [memberId, setMemberId] = useState<string | null>(initial?.memberId ?? null);
   const [projectId, setProjectId] = useState<string | null>(initial?.projectId ?? null);
   const [meetupId, setMeetupId] = useState<string | null>(initial?.meetupId ?? null);
@@ -61,9 +58,13 @@ function UpdateFormFields({ initial, onClose }: { initial?: UpdateInitial; onClo
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
+  const memberGroups = formOptions
+    ? [{ label: "", options: formOptions.members.map((m) => ({ value: m.id, label: m.name })) }]
+    : [];
+
   const selectedMember = formOptions?.members.find((m) => m.id === memberId);
 
-  // The project dropdown only offers the chosen member's projects (spec §3.4).
+  // The project dropdown only offers the chosen member's projects.
   const projectGroups = selectedMember
     ? [{ label: "", options: selectedMember.projects.map((p) => ({ value: p.id, label: p.name })) }]
     : [];
@@ -74,7 +75,7 @@ function UpdateFormFields({ initial, onClose }: { initial?: UpdateInitial; onClo
           label: "",
           options: formOptions.meetups.map((m) => ({
             value: m.id,
-            label: `${MEETUP_CATEGORY_LABELS[m.category]} #${m.number} — ${formatDate(m.date)}`,
+            label: `Meetup #${m.number} — ${formatDate(m.date)}`,
           })),
         },
       ]
@@ -98,7 +99,6 @@ function UpdateFormFields({ initial, onClose }: { initial?: UpdateInitial; onClo
         memberId: parsed.data.memberId as Id<"members">,
         projectId: parsed.data.projectId as Id<"projects">,
         meetupId: parsed.data.meetupId as Id<"meetups">,
-        category,
         description: parsed.data.description,
       };
       if (initial) {
@@ -119,29 +119,9 @@ function UpdateFormFields({ initial, onClose }: { initial?: UpdateInitial; onClo
   return (
     <form onSubmit={submit} className="space-y-4">
         {error && <InlineErrorBanner message={error} />}
-        <Field label="Category">
-          <RadioRow
-            name="update-category"
-            value={category}
-            onChange={setCategory}
-            options={[
-              { value: "idea_talk", label: "Idea Talk" },
-              { value: "progress_talk", label: "Progress Talk" },
-            ]}
-          />
-        </Field>
         <Field label="Member">
           <SearchableDropdown
-            groups={
-              formOptions
-                ? [
-                    {
-                      label: "",
-                      options: formOptions.members.map((m) => ({ value: m.id, label: m.name })),
-                    },
-                  ]
-                : []
-            }
+            groups={memberGroups}
             value={memberId}
             onChange={(v) => {
               setMemberId(v);

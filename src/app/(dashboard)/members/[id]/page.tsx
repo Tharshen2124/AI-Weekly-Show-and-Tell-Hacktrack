@@ -14,11 +14,7 @@ import { NullTextIndicator } from "@/components/ui/null-text-indicator";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { UpdateAdminActions } from "@/components/cards/update-admin-actions";
 import { ErrorState } from "@/components/ui/error-state";
-import {
-  MEETUP_CATEGORY_LABELS,
-  PROJECT_CATEGORY_LABELS,
-  UPDATE_CATEGORY_LABELS,
-} from "@/lib/labels";
+import { PROJECT_CATEGORY_LABELS } from "@/lib/labels";
 import { formatDate } from "@/lib/format";
 
 export default function MemberDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -59,16 +55,11 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <h1 className="text-4xl">{member.name}</h1>
-                <StatusPill status={member.status} />
+                <StatusPill isActive={member.isActive} />
               </div>
-              <p className="mt-2 text-sm text-ink-muted">
-                {member.email}
-                {member.discordTag ? ` · @${member.discordTag}` : ""}
-                {member.contactNumber ? ` · ${member.contactNumber}` : ""}
-              </p>
+              <p className="mt-2 text-sm text-ink-muted">{member.email}</p>
               <p className="mt-1 text-sm text-ink-faint">
                 Registered {formatDate(member.registerDate)}
-                {member.comment ? ` — ${member.comment}` : ""}
               </p>
             </div>
             {isAdmin && (
@@ -95,8 +86,8 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
             {[
               { label: "Projects", value: member.projectCount },
-              { label: "Idea talks", value: member.ideaTalkCount },
-              { label: "Progress talks", value: member.progressTalkCount },
+              { label: "Progress talks", value: member.progressTalkNum },
+              { label: "Updates", value: member.totalUpdates },
               { label: "Active for", value: member.durationActive },
               {
                 label: "Avg between talks",
@@ -139,12 +130,11 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                               href={`/meetups/${u.meetupId}`}
                               className="font-medium underline-offset-4 hover:underline"
                             >
-                              {MEETUP_CATEGORY_LABELS[u.meetupCategory]} #{u.meetupNumber}
+                              Meetup #{u.meetupNumber}
                             </Link>
                             <span className="text-ink-faint">
                               {" "}
-                              · {formatDate(u.meetupDate)} · {UPDATE_CATEGORY_LABELS[u.category]} by{" "}
-                              {u.memberName}
+                              · {formatDate(u.meetupDate)} · by {u.memberName}
                             </span>
                           </p>
                           {isAdmin && (
@@ -154,7 +144,6 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                                 memberId: u.memberId,
                                 projectId: project._id,
                                 meetupId: u.meetupId,
-                                category: u.category,
                                 description: u.description,
                               }}
                             />
@@ -175,7 +164,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
             title="Delete member"
             description={`Deleting ${member.name} will also delete their ${member.totalUpdates} ${
               member.totalUpdates === 1 ? "update" : "updates"
-            }, remove them from their projects, and delete any project left with no members. This cannot be undone.`}
+            }. This cannot be undone.`}
             onConfirm={async () => {
               if (!token) return;
               try {

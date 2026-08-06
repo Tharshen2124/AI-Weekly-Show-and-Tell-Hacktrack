@@ -12,9 +12,18 @@ interface ModalLayoutProps {
   children: ReactNode;
   /** Wider variant for detail modals. */
   wide?: boolean;
+  /** Icon-only actions rendered in the header, before the close button. */
+  headerActions?: ReactNode;
 }
 
-export function ModalLayout({ open, onClose, title, children, wide }: ModalLayoutProps) {
+export function ModalLayout({
+  open,
+  onClose,
+  title,
+  children,
+  wide,
+  headerActions,
+}: ModalLayoutProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Escape to close + scroll lock + focus trap entry.
@@ -81,15 +90,18 @@ export function ModalLayout({ open, onClose, title, children, wide }: ModalLayou
               wide ? "sm:max-w-2xl" : "sm:max-w-lg"
             }`}
           >
-            <div className="flex items-center justify-between border-b border-edge px-5 py-4">
+            <div className="flex items-center justify-between gap-3 border-b border-edge px-5 py-4">
               <h2 className="text-xl">{title}</h2>
-              <button
-                aria-label="Close"
-                onClick={onClose}
-                className="rounded-card p-1 text-ink-muted transition-colors hover:bg-surface-sunken hover:text-ink"
-              >
-                <X className="h-5 w-5" />
-              </button>
+              <div className="flex shrink-0 items-center gap-1">
+                {headerActions}
+                <button
+                  aria-label="Close"
+                  onClick={onClose}
+                  className="rounded-card p-1 text-ink-muted transition-colors hover:bg-surface-sunken hover:text-ink"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
             </div>
             <div className="overflow-y-auto px-5 py-4">{children}</div>
           </motion.div>

@@ -51,11 +51,9 @@ export default function MemberEditPage({ params }: { params: Promise<{ id: strin
               id: member._id,
               name: member.name,
               email: member.email,
-              contactNumber: member.contactNumber ?? "",
-              discordTag: member.discordTag ?? "",
-              status: member.status,
-              comment: member.comment ?? "",
+              isActive: member.isActive,
               registerDate: member.registerDate,
+              progressTalkNum: member.progressTalkNum,
             }}
             onSaved={() => router.push(`/members/${id}`)}
             onCancel={() => router.push(`/members/${id}`)}

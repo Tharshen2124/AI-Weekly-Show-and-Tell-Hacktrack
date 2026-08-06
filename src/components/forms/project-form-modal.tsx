@@ -50,7 +50,7 @@ function ProjectFormFields({ initial, onClose }: { initial?: ProjectInitial; onC
   const updateProject = useMutation(api.projects.update);
 
   const [name, setName] = useState(initial?.name ?? "");
-  const [category, setCategory] = useState<ProjectCategory>(initial?.category ?? "project");
+  const [category, setCategory] = useState<ProjectCategory>(initial?.category ?? "solo");
   const [completed, setCompleted] = useState(initial?.completed ?? false);
   const [memberIds, setMemberIds] = useState<string[]>(initial?.memberIds ?? []);
   const [error, setError] = useState<string | null>(null);
@@ -125,9 +125,8 @@ function ProjectFormFields({ initial, onClose }: { initial?: ProjectInitial; onC
             value={category}
             onChange={setCategory}
             options={[
-              { value: "project", label: "Project" },
-              { value: "mini_project", label: "Mini Project" },
-              { value: "group_project", label: "Group Project" },
+              { value: "solo", label: "Solo" },
+              { value: "group", label: "Group" },
             ]}
           />
         </Field>

@@ -4,7 +4,15 @@ import { useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery } from "convex/react";
 import { FunctionReturnType } from "convex/server";
-import { Folder, Hourglass, Lightbulb, MessageSquareText, Pencil, Timer, Trash2 } from "lucide-react";
+import {
+  CalendarClock,
+  Folder,
+  Hourglass,
+  MessageSquareText,
+  Pencil,
+  Timer,
+  Trash2,
+} from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import { useAuthStore } from "@/lib/auth-store";
@@ -14,8 +22,9 @@ import { StatusPill } from "@/components/ui/status-pill";
 import { NullTextIndicator } from "@/components/ui/null-text-indicator";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ProjectFormModal } from "@/components/forms/project-form-modal";
+import { MemberForm } from "@/components/forms/member-form";
 import { UpdateAdminActions } from "./update-admin-actions";
-import { MEETUP_CATEGORY_LABELS, PROJECT_CATEGORY_LABELS, UPDATE_CATEGORY_LABELS } from "@/lib/labels";
+import { PROJECT_CATEGORY_LABELS } from "@/lib/labels";
 import { formatDate } from "@/lib/format";
 
 export type MemberListItem = FunctionReturnType<typeof api.members.list>["data"][number];
@@ -53,15 +62,11 @@ export function MemberCard({ member }: { member: MemberListItem }) {
       >
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-serif-display text-xl leading-tight">{member.name}</h3>
-          <StatusPill status={member.status} />
+          <StatusPill isActive={member.isActive} />
         </div>
         <div className="mt-4 space-y-2">
           <Metric icon={Folder} label="Projects" value={member.projectCount} />
-          <Metric
-            icon={Lightbulb}
-            label="Idea / progress talks"
-            value={`${member.ideaTalkCount} / ${member.progressTalkCount}`}
-          />
+          <Metric icon={MessageSquareText} label="Updates" value={member.totalUpdates} />
           <Metric icon={Hourglass} label="Active for" value={member.durationActive} />
           <Metric
             icon={Timer}
@@ -69,7 +74,7 @@ export function MemberCard({ member }: { member: MemberListItem }) {
             value={member.avgTimeBetweenTalks ?? <NullTextIndicator />}
           />
           <Metric
-            icon={MessageSquareText}
+            icon={CalendarClock}
             label="Meetups since last talk"
             value={member.meetupsSinceLastTalk}
           />
@@ -126,10 +131,8 @@ function ProjectSection({ project }: { project: MemberProject }) {
             <li key={u._id} className="text-sm">
               <div className="flex items-start justify-between gap-2">
                 <span className="text-ink-muted">
-                  <span className="font-medium text-ink">
-                    {MEETUP_CATEGORY_LABELS[u.meetupCategory]} #{u.meetupNumber}
-                  </span>{" "}
-                  · {formatDate(u.meetupDate)} · {UPDATE_CATEGORY_LABELS[u.category]} by {u.memberName}
+                  <span className="font-medium text-ink">Meetup #{u.meetupNumber}</span> ·{" "}
+                  {formatDate(u.meetupDate)} · by {u.memberName}
                 </span>
                 {isAdmin && (
                   <UpdateAdminActions
@@ -138,7 +141,6 @@ function ProjectSection({ project }: { project: MemberProject }) {
                       memberId: u.memberId,
                       projectId: project._id,
                       meetupId: u.meetupId,
-                      category: u.category,
                       description: u.description,
                     }}
                   />
@@ -190,10 +192,41 @@ export function MemberDetailModal({
   onClose: () => void;
 }) {
   const token = useAuthStore((s) => s.token);
+  const isAdmin = useAuthStore((s) => s.isAdmin);
+  const toast = useToast();
   const member = useQuery(api.members.get, token ? { token, id: memberId } : "skip");
+  const removeMember = useMutation(api.members.remove);
+  const [editing, setEditing] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   return (
-    <ModalLayout open onClose={onClose} title={member?.name ?? "Member"} wide>
+    <ModalLayout
+      open
+      onClose={onClose}
+      title={member?.name ?? "Member"}
+      wide
+      headerActions={
+        isAdmin &&
+        member && (
+          <>
+            <button
+              aria-label="Edit member"
+              onClick={() => setEditing(true)}
+              className="rounded-card p-1.5 text-ink-muted transition-colors hover:bg-surface-sunken hover:text-ink"
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
+            <button
+              aria-label="Delete member"
+              onClick={() => setConfirming(true)}
+              className="rounded-card p-1.5 text-ink-muted transition-colors hover:bg-danger-soft hover:text-danger"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </>
+        )
+      }
+    >
       {!member ? (
         <div className="space-y-3 py-2">
           <div className="h-5 w-40 animate-pulse rounded bg-surface-sunken" />
@@ -202,7 +235,7 @@ export function MemberDetailModal({
       ) : (
         <>
           <div className="flex flex-wrap items-center gap-2">
-            <StatusPill status={member.status} />
+            <StatusPill isActive={member.isActive} />
             <span className="text-sm text-ink-muted">
               Active for {member.durationActive} · {member.totalUpdates} updates ·{" "}
               {member.meetupsSinceLastTalk} meetups since last talk
@@ -227,6 +260,47 @@ export function MemberDetailModal({
               View full page →
             </Link>
           </div>
+
+          <ModalLayout
+            open={editing}
+            onClose={() => setEditing(false)}
+            title="Edit Member"
+            wide
+          >
+            {/* Mounted only while open, so state resets every time the modal reopens. */}
+            {editing && (
+              <MemberForm
+                initial={{
+                  id: member._id,
+                  name: member.name,
+                  email: member.email,
+                  isActive: member.isActive,
+                  registerDate: member.registerDate,
+                  progressTalkNum: member.progressTalkNum,
+                }}
+                onSaved={() => setEditing(false)}
+                onCancel={() => setEditing(false)}
+              />
+            )}
+          </ModalLayout>
+          <ConfirmDialog
+            open={confirming}
+            onClose={() => setConfirming(false)}
+            title="Delete member"
+            description={`Deleting ${member.name} will also delete their ${member.totalUpdates} ${
+              member.totalUpdates === 1 ? "update" : "updates"
+            }, remove them from their projects, and delete any project left with no members. This cannot be undone.`}
+            onConfirm={async () => {
+              if (!token) return;
+              try {
+                await removeMember({ token, id: member._id });
+                toast.success("Successfully deleted member!");
+                onClose();
+              } catch {
+                toast.error("Error occurred, member was not deleted.");
+              }
+            }}
+          />
         </>
       )}
     </ModalLayout>

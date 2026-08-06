@@ -1,7 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query, QueryCtx } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
-import { memberStatusValidator } from "./schema";
 import { requireAdmin, requireSession } from "./lib/session";
 import { computeMemberMetrics, MemberMetrics, UpdateForMetrics } from "./lib/metrics";
 
@@ -15,7 +14,7 @@ function todayISO(): string {
 
 /**
  * Loads everything needed to compute metrics for any set of members in one pass:
- * meetup lookup, per-member updates, per-member project counts, regular meetup dates.
+ * meetup lookup, per-member updates, per-member project counts.
  */
 async function loadMetricsContext(ctx: QueryCtx) {
   const [meetups, updates, projectMembers] = await Promise.all([
@@ -25,20 +24,14 @@ async function loadMetricsContext(ctx: QueryCtx) {
   ]);
 
   const meetupById = new Map(meetups.map((m) => [m._id, m]));
-  const regularMeetupDates = meetups
-    .filter((m) => m.category === "regular_meetup")
-    .map((m) => m.date);
+  const meetupDates = meetups.map((m) => m.date);
 
   const updatesByMember = new Map<Id<"members">, UpdateForMetrics[]>();
   for (const u of updates) {
     const meetup = meetupById.get(u.meetupId);
     if (!meetup) continue;
     const list = updatesByMember.get(u.memberId) ?? [];
-    list.push({
-      category: u.category,
-      meetupDate: meetup.date,
-      meetupCategory: meetup.category,
-    });
+    list.push({ meetupDate: meetup.date });
     updatesByMember.set(u.memberId, list);
   }
 
@@ -47,7 +40,7 @@ async function loadMetricsContext(ctx: QueryCtx) {
     projectCountByMember.set(pm.memberId, (projectCountByMember.get(pm.memberId) ?? 0) + 1);
   }
 
-  return { meetupById, regularMeetupDates, updatesByMember, projectCountByMember };
+  return { meetupById, meetupDates, updatesByMember, projectCountByMember };
 }
 
 function attachMetrics(
@@ -61,7 +54,7 @@ function attachMetrics(
     ...computeMemberMetrics({
       registerDate: member.registerDate,
       updates,
-      regularMeetupDates: context.regularMeetupDates,
+      meetupDates: context.meetupDates,
       today,
     }),
     projectCount: context.projectCountByMember.get(member._id) ?? 0,
@@ -72,9 +65,7 @@ function lastTalkDate(
   member: MemberWithMetrics,
   context: Awaited<ReturnType<typeof loadMetricsContext>>,
 ): string {
-  const updates = (context.updatesByMember.get(member._id) ?? []).filter(
-    (u) => u.meetupCategory !== "off_record_meetup",
-  );
+  const updates = context.updatesByMember.get(member._id) ?? [];
   return updates.map((u) => u.meetupDate).sort().at(-1) ?? "";
 }
 
@@ -89,21 +80,21 @@ export type MemberSortBy =
 export async function listMembersInner(
   ctx: QueryCtx,
   args: {
-    statuses?: Doc<"members">["status"][];
+    /** undefined = all members; true/false filters on isActive. */
+    isActive?: boolean;
     sortBy?: MemberSortBy;
     page?: number;
     pageSize?: number;
   },
 ) {
   {
-    const statuses = args.statuses ?? ["active", "socially_active"];
     const sortBy = args.sortBy ?? "recent_talks";
     const page = Math.max(1, args.page ?? 1);
     const pageSize = args.pageSize ?? PAGE_SIZE;
 
     const all = await ctx.db.query("members").collect();
     const filtered =
-      statuses.length === 0 ? all : all.filter((m) => statuses.includes(m.status));
+      args.isActive === undefined ? all : all.filter((m) => m.isActive === args.isActive);
 
     const context = await loadMetricsContext(ctx);
     const today = todayISO();
@@ -137,7 +128,7 @@ export async function listMembersInner(
 export const list = query({
   args: {
     token: v.string(),
-    statuses: v.optional(v.array(memberStatusValidator)),
+    isActive: v.optional(v.boolean()),
     sortBy: v.optional(
       v.union(
         v.literal("recent_talks"),
@@ -181,6 +172,8 @@ export const get = query({
     const context = await loadMetricsContext(ctx);
     const withMetrics = attachMetrics(member, context, todayISO());
 
+    // Projects the member belongs to, with each project's full update history
+    // and roster.
     const links = await ctx.db
       .query("projectMembers")
       .withIndex("by_member", (q) => q.eq("memberId", id))
@@ -201,14 +194,12 @@ export const get = query({
         if (!meetup) continue;
         updates.push({
           _id: u._id,
-          category: u.category,
           description: u.description,
           memberId: u.memberId,
           memberName: updateMember?.name ?? "Unknown",
           meetupId: u.meetupId,
           meetupDate: meetup.date,
           meetupNumber: meetup.number,
-          meetupCategory: meetup.category,
         });
       }
       updates.sort((a, b) => b.meetupDate.localeCompare(a.meetupDate));
@@ -231,16 +222,10 @@ export const get = query({
 const memberFields = {
   name: v.string(),
   email: v.string(),
-  contactNumber: v.optional(v.string()),
-  discordTag: v.optional(v.string()),
-  status: memberStatusValidator,
-  comment: v.optional(v.string()),
+  isActive: v.optional(v.boolean()),
   registerDate: v.string(),
+  progressTalkNum: v.optional(v.number()),
 };
-
-function isActiveStatus(status: Doc<"members">["status"]): boolean {
-  return status === "active" || status === "socially_active";
-}
 
 export const create = mutation({
   args: { token: v.string(), ...memberFields },
@@ -248,8 +233,12 @@ export const create = mutation({
     await requireAdmin(ctx, token);
     if (fields.name.trim() === "") throw new Error("Name is required");
     return await ctx.db.insert("members", {
-      ...fields,
-      active: isActiveStatus(fields.status),
+      name: fields.name,
+      email: fields.email,
+      isActive: fields.isActive ?? false,
+      registerDate: fields.registerDate,
+      progressTalkNum: fields.progressTalkNum ?? 0,
+      updatedAt: Date.now(),
     });
   },
 });
@@ -260,22 +249,17 @@ export const update = mutation({
     id: v.id("members"),
     name: v.optional(v.string()),
     email: v.optional(v.string()),
-    contactNumber: v.optional(v.string()),
-    discordTag: v.optional(v.string()),
-    status: v.optional(memberStatusValidator),
-    comment: v.optional(v.string()),
+    isActive: v.optional(v.boolean()),
     registerDate: v.optional(v.string()),
+    progressTalkNum: v.optional(v.number()),
   },
   handler: async (ctx, { token, id, ...fields }) => {
     await requireAdmin(ctx, token);
     const existing = await ctx.db.get(id);
     if (!existing) throw new Error("Member not found");
-    const patch: Record<string, unknown> = {};
+    const patch: Record<string, unknown> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) patch[key] = value;
-    }
-    if (fields.status !== undefined) {
-      patch.active = isActiveStatus(fields.status);
     }
     await ctx.db.patch(id, patch);
     return null;
@@ -317,14 +301,6 @@ export const remove = mutation({
           await ctx.db.delete(u._id);
         }
         await ctx.db.delete(link.projectId);
-      }
-    }
-
-    // Null out hostId on meetups they hosted.
-    const meetups = await ctx.db.query("meetups").collect();
-    for (const meetup of meetups) {
-      if (meetup.hostId === id) {
-        await ctx.db.patch(meetup._id, { hostId: undefined });
       }
     }
 

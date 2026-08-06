@@ -4,43 +4,47 @@ import { use, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
-import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, CircleCheck, CircleDashed, Pencil, Trash2 } from "lucide-react";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
 import { useAuthStore } from "@/lib/auth-store";
 import { useToast } from "@/components/providers/toast-provider";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { MeetupFormModal } from "@/components/forms/meetup-form-modal";
+import { ProjectFormModal } from "@/components/forms/project-form-modal";
 import { UpdateAdminActions } from "@/components/cards/update-admin-actions";
 import { ErrorState } from "@/components/ui/error-state";
+import { PROJECT_CATEGORY_LABELS } from "@/lib/labels";
 import { formatDate } from "@/lib/format";
 
-export default function MeetupDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const toast = useToast();
   const token = useAuthStore((s) => s.token);
   const isAdmin = useAuthStore((s) => s.isAdmin);
-  const meetup = useQuery(api.meetups.get, token ? { token, id: id as Id<"meetups"> } : "skip");
-  const removeMeetup = useMutation(api.meetups.remove);
+  const project = useQuery(
+    api.projects.get,
+    token ? { token, id: id as Id<"projects"> } : "skip",
+  );
+  const removeProject = useMutation(api.projects.remove);
   const [editing, setEditing] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
-  if (meetup === null) {
-    return <ErrorState message="This meetup does not exist (it may have been deleted)." />;
+  if (project === null) {
+    return <ErrorState message="This project does not exist (it may have been deleted)." />;
   }
 
   return (
     <div className="space-y-8">
       <Link
-        href="/meetups"
+        href="/projects"
         className="inline-flex items-center gap-1.5 text-sm text-ink-muted hover:text-ink"
       >
         <ArrowLeft className="h-4 w-4" />
-        All meetups
+        All projects
       </Link>
 
-      {meetup === undefined ? (
+      {project === undefined ? (
         <div className="space-y-4">
           <div className="h-10 w-64 animate-pulse rounded bg-surface-sunken" />
           <div className="h-32 animate-pulse rounded-card bg-surface-sunken" />
@@ -49,10 +53,39 @@ export default function MeetupDetailPage({ params }: { params: Promise<{ id: str
         <>
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h1 className="text-4xl">Meetup #{meetup.number}</h1>
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-4xl">{project.name}</h1>
+                <span
+                  className={`inline-flex items-center gap-1.5 text-sm ${
+                    project.completed ? "text-success" : "text-ink-faint"
+                  }`}
+                >
+                  {project.completed ? (
+                    <CircleCheck className="h-4 w-4" />
+                  ) : (
+                    <CircleDashed className="h-4 w-4" />
+                  )}
+                  {project.completed ? "Completed" : "Ongoing"}
+                </span>
+              </div>
               <p className="mt-2 text-sm text-ink-muted">
-                {formatDate(meetup.date)} · {meetup.updateCount}{" "}
-                {meetup.updateCount === 1 ? "update" : "updates"}
+                {PROJECT_CATEGORY_LABELS[project.category]} · {project.updates.length}{" "}
+                {project.updates.length === 1 ? "update" : "updates"}
+              </p>
+              <p className="mt-1 text-sm text-ink-faint">
+                {project.members.length === 0
+                  ? "No members"
+                  : project.members.map((m, i) => (
+                      <span key={m.id}>
+                        {i > 0 && ", "}
+                        <Link
+                          href={`/members/${m.id}`}
+                          className="underline-offset-4 hover:text-ink hover:underline"
+                        >
+                          {m.name}
+                        </Link>
+                      </span>
+                    ))}
               </p>
             </div>
             {isAdmin && (
@@ -77,29 +110,34 @@ export default function MeetupDetailPage({ params }: { params: Promise<{ id: str
 
           <section className="space-y-3">
             <h2 className="text-2xl">Updates</h2>
-            {meetup.updates.length === 0 && (
-              <p className="text-sm text-ink-faint">No updates were recorded at this meetup.</p>
+            {project.updates.length === 0 && (
+              <p className="text-sm text-ink-faint">No talks recorded for this project yet.</p>
             )}
-            {meetup.updates.map((u) => (
+            {project.updates.map((u) => (
               <div key={u._id} className="rounded-card border border-edge bg-surface-raised p-4">
                 <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm font-medium">
+                  <p className="text-sm">
+                    <Link
+                      href={`/meetups/${u.meetupId}`}
+                      className="font-medium underline-offset-4 hover:underline"
+                    >
+                      Meetup #{u.meetupNumber}
+                    </Link>
+                    <span className="text-ink-faint"> · {formatDate(u.meetupDate)} · by </span>
                     <Link
                       href={`/members/${u.memberId}`}
-                      className="underline-offset-4 hover:underline"
+                      className="text-ink-muted underline-offset-4 hover:underline"
                     >
                       {u.memberName}
                     </Link>
-                    <span className="text-ink-faint"> · </span>
-                    <span className="text-ink-muted">{u.projectName}</span>
                   </p>
                   {isAdmin && (
                     <UpdateAdminActions
                       update={{
                         id: u._id,
                         memberId: u.memberId,
-                        projectId: u.projectId,
-                        meetupId: meetup._id,
+                        projectId: project._id,
+                        meetupId: u.meetupId,
                         description: u.description,
                       }}
                     />
@@ -110,30 +148,32 @@ export default function MeetupDetailPage({ params }: { params: Promise<{ id: str
             ))}
           </section>
 
-          <MeetupFormModal
+          <ProjectFormModal
             open={editing}
             onClose={() => setEditing(false)}
             initial={{
-              id: meetup._id,
-              number: meetup.number,
-              date: meetup.date,
+              id: project._id,
+              name: project.name,
+              category: project.category,
+              completed: project.completed,
+              memberIds: project.members.map((m) => m.id),
             }}
           />
           <ConfirmDialog
             open={confirmingDelete}
             onClose={() => setConfirmingDelete(false)}
-            title="Delete meetup"
-            description={`Deleting this meetup will also delete its ${meetup.updateCount} ${
-              meetup.updateCount === 1 ? "update" : "updates"
+            title="Delete project"
+            description={`Deleting "${project.name}" will also delete its ${project.updates.length} ${
+              project.updates.length === 1 ? "update" : "updates"
             }. This cannot be undone.`}
             onConfirm={async () => {
               if (!token) return;
               try {
-                await removeMeetup({ token, id: meetup._id });
-                toast.success("Successfully deleted meetup!");
-                router.push("/meetups");
+                await removeProject({ token, id: project._id });
+                toast.success("Successfully deleted project!");
+                router.push("/projects");
               } catch {
-                toast.error("Error occurred, meetup was not deleted.");
+                toast.error("Error occurred, project was not deleted.");
               }
             }}
           />

@@ -18,36 +18,18 @@ export default function MeetupsPage() {
     <div className="space-y-10">
       <div>
         <h1 className="text-4xl">Meetups</h1>
-        <p className="mt-1.5 text-sm text-ink-muted">
-          Every recorded meetup and hackathon, newest first.
-        </p>
+        <p className="mt-1.5 text-sm text-ink-muted">Every recorded meetup, newest first.</p>
       </div>
 
       <section>
-        <h2 className="mb-4 text-2xl">Regular Meetups</h2>
         {!list ? (
           <CardGridSkeleton count={8} kind="meetup" />
-        ) : list.regularMeetups.length === 0 ? (
-          <EmptyState message="No regular meetups on this page." />
+        ) : list.meetups.length === 0 ? (
+          <EmptyState message="No meetups on this page." />
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {list.regularMeetups.map((meetup) => (
+            {list.meetups.map((meetup) => (
               <MeetupCard key={meetup._id} meetup={meetup} />
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section>
-        <h2 className="mb-4 text-2xl">Hackathons</h2>
-        {!list ? (
-          <CardGridSkeleton count={4} kind="meetup" />
-        ) : list.hackathons.length === 0 ? (
-          <EmptyState message="No hackathons on this page." />
-        ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {list.hackathons.map((meetup) => (
-              <MeetupCard key={meetup._id} meetup={meetup} variant="hackathon" />
             ))}
           </div>
         )}

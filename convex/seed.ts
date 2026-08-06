@@ -1,5 +1,5 @@
 import { internalMutation } from "./_generated/server";
-import { Doc, Id } from "./_generated/dataModel";
+import { Id } from "./_generated/dataModel";
 
 // Deterministic PRNG so reseeding produces the same data.
 function mulberry32(seed: number) {
@@ -50,11 +50,6 @@ const UPDATE_SNIPPETS = [
   "Outlined the roadmap for the next quarter.",
   "Showed the failed experiments and what was learned.",
 ];
-const STATUSES: Doc<"members">["status"][] = [
-  "active", "active", "active", "active", "socially_active", "socially_active",
-  "was_active", "was_socially_active", "never_active", "registered",
-  "contacted", "first_talk_given", "terminated", "duplicate",
-];
 
 function isoDaysAgo(days: number): string {
   return new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
@@ -70,67 +65,45 @@ export default internalMutation({
     }
     const rand = mulberry32(20260731);
     const pick = <T,>(arr: T[]): T => arr[Math.floor(rand() * arr.length)];
+    const now = Date.now();
 
     // ~40 members
     const memberIds: Id<"members">[] = [];
     for (let i = 0; i < 40; i++) {
       const name = `${FIRST_NAMES[i]} ${LAST_NAMES[i]}`;
-      const status = STATUSES[Math.floor(rand() * STATUSES.length)];
       const id = await ctx.db.insert("members", {
         name,
         email: `${name.toLowerCase().replace(/[^a-z]+/g, ".")}@example.com`,
-        contactNumber: rand() > 0.4 ? `+601${Math.floor(rand() * 90000000 + 10000000)}` : undefined,
-        discordTag: rand() > 0.3 ? name.toLowerCase().replace(/[^a-z]+/g, "_") : undefined,
-        status,
-        comment: rand() > 0.8 ? "Met at the university open day." : undefined,
+        isActive: rand() > 0.4,
         registerDate: isoDaysAgo(Math.floor(rand() * 700) + 30),
-        active: status === "active" || status === "socially_active",
+        progressTalkNum: Math.floor(rand() * 12),
+        updatedAt: now,
       });
       memberIds.push(id);
     }
 
-    // ~50 meetups: 42 regular (weekly), 5 hackathons, 3 off-record
+    // ~45 weekly meetups
     const meetupIds: Id<"meetups">[] = [];
-    for (let n = 1; n <= 42; n++) {
+    for (let n = 1; n <= 45; n++) {
       meetupIds.push(
         await ctx.db.insert("meetups", {
-          date: isoDaysAgo((42 - n) * 7 + 2),
-          category: "regular_meetup",
+          date: isoDaysAgo((45 - n) * 7 + 2),
           number: n,
-          hostId: rand() > 0.15 ? pick(memberIds) : undefined,
+          updatedAt: now,
         }),
       );
-    }
-    for (let n = 1; n <= 5; n++) {
-      meetupIds.push(
-        await ctx.db.insert("meetups", {
-          date: isoDaysAgo((5 - n) * 60 + 10),
-          category: "hackathon",
-          number: n,
-          hostId: rand() > 0.3 ? pick(memberIds) : undefined,
-        }),
-      );
-    }
-    for (let n = 1; n <= 3; n++) {
-      await ctx.db.insert("meetups", {
-        date: isoDaysAgo(n * 90 + 5),
-        category: "off_record_meetup",
-        number: n,
-        hostId: undefined,
-      });
     }
 
-    // ~30 projects with 1-4 members each
+    // ~30 projects with 1-4 members each; category follows the roster size.
     const projectIds: Id<"projects">[] = [];
     const projectMemberMap = new Map<Id<"projects">, Id<"members">[]>();
     for (let i = 0; i < 30; i++) {
       const memberCount = rand() > 0.6 ? Math.floor(rand() * 3) + 2 : 1;
-      const category =
-        memberCount > 1 ? "group_project" : rand() > 0.5 ? "project" : "mini_project";
       const id = await ctx.db.insert("projects", {
         name: PROJECT_NAMES[i],
-        category,
+        category: memberCount > 1 ? "group" : "solo",
         completed: rand() > 0.7,
+        updatedAt: now,
       });
       const chosen = new Set<Id<"members">>();
       while (chosen.size < memberCount) chosen.add(pick(memberIds));
@@ -149,11 +122,11 @@ export default internalMutation({
         meetupId: pick(meetupIds),
         projectId,
         memberId: pick(projectMembers),
-        category: rand() > 0.7 ? "idea_talk" : "progress_talk",
         description: pick(UPDATE_SNIPPETS),
+        updatedAt: now,
       });
     }
 
-    return "Seeded: 40 members, 50 meetups, 30 projects, 200 updates";
+    return "Seeded: 40 members, 45 meetups, 30 projects, 200 updates";
   },
 });

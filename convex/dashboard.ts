@@ -11,7 +11,7 @@ export const summary = query({
 
     const meetupsPage = await listMeetupsInner(ctx, { page: 1, pageSize: 4 });
     const membersPage = await listMembersInner(ctx, {
-      statuses: ["active", "socially_active"],
+      isActive: true,
       sortBy: "recent_talks",
       page: 1,
       pageSize: 8,
@@ -25,12 +25,11 @@ export const summary = query({
     ]);
 
     return {
-      recentMeetups: meetupsPage.regularMeetups,
-      recentHackathons: meetupsPage.hackathons,
+      recentMeetups: meetupsPage.meetups,
       activeMembers: membersPage.data,
       stats: {
         memberCount: allMembers.length,
-        meetupCount: allMeetups.filter((m) => m.category !== "off_record_meetup").length,
+        meetupCount: allMeetups.length,
         projectCount: allProjects.length,
         updateCount: allUpdates.length,
       },
