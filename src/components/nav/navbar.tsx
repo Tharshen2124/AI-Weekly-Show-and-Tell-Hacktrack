@@ -15,6 +15,7 @@ const LINKS = [
   { href: "/members", label: "Members" },
   { href: "/meetups", label: "Meetups" },
   { href: "/projects", label: "Projects" },
+  { href: "/present", label: "Present" },
 ];
 
 function Brand() {
