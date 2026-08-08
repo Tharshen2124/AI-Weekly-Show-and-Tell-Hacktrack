@@ -16,7 +16,7 @@ export type AccessState = {
 
 function useMe() {
   const { isAuthenticated } = useConvexAuth();
-  return useQuery(api.auth.me, isAuthenticated ? {} : "skip");
+  return useQuery(api.functions.auth.me, isAuthenticated ? {} : "skip");
 }
 
 /**

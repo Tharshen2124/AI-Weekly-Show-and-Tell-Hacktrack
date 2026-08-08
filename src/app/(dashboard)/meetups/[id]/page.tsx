@@ -20,8 +20,8 @@ export default function MeetupDetailPage({ params }: { params: Promise<{ id: str
   const router = useRouter();
   const toast = useToast();
   const isAdmin = useIsAdmin();
-  const meetup = useQuery(api.meetups.get, { id: id as Id<"meetups">  });
-  const removeMeetup = useMutation(api.meetups.remove);
+  const meetup = useQuery(api.functions.meetups.get, { id: id as Id<"meetups">  });
+  const removeMeetup = useMutation(api.functions.meetups.remove);
   const [editing, setEditing] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 

@@ -1,5 +1,5 @@
-import { query } from "./_generated/server";
-import { currentMember } from "./lib/auth";
+import { query } from "../_generated/server";
+import { currentMember } from "../lib/auth";
 
 /**
  * Who the caller is as far as this app is concerned. Returns null when the

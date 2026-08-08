@@ -1,8 +1,8 @@
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
-import { api } from "./_generated/api";
-import { Id } from "./_generated/dataModel";
-import schema from "./schema";
+import { api } from "../../convex/_generated/api";
+import { Id } from "../../convex/_generated/dataModel";
+import schema from "../../convex/schema";
 import { modules } from "./test.setup";
 
 const ADMIN_EMAIL = "admin@example.com";
@@ -48,7 +48,7 @@ describe("authorization", () => {
     const t = convexTest(schema, modules);
     const { member } = await seedAccess(t);
     await expect(
-      member.mutation(api.members.create, {
+      member.mutation(api.functions.members.create, {
         name: "Eve",
         email: "eve@example.com",
         registerDate: "2026-01-01",
@@ -59,42 +59,42 @@ describe("authorization", () => {
   it("rejects anonymous callers", async () => {
     const t = convexTest(schema, modules);
     await seedAccess(t);
-    await expect(t.query(api.members.list, {})).rejects.toThrow("Unauthorized");
+    await expect(t.query(api.functions.members.list, {})).rejects.toThrow("Unauthorized");
   });
 
   it("rejects a signed-in Google account that is not on the roster", async () => {
     const t = convexTest(schema, modules);
     await seedAccess(t);
     const stranger = t.withIdentity({ email: "nobody@example.com", emailVerified: true });
-    await expect(stranger.query(api.members.list, {})).rejects.toThrow("Unauthorized");
+    await expect(stranger.query(api.functions.members.list, {})).rejects.toThrow("Unauthorized");
   });
 
   it("rejects a roster member who holds no access level", async () => {
     const t = convexTest(schema, modules);
     await seedAccess(t);
     const outsider = t.withIdentity({ email: OUTSIDER_EMAIL, emailVerified: true });
-    await expect(outsider.query(api.members.list, {})).rejects.toThrow("Unauthorized");
+    await expect(outsider.query(api.functions.members.list, {})).rejects.toThrow("Unauthorized");
   });
 
   it("rejects an unverified email even when it is on the roster", async () => {
     const t = convexTest(schema, modules);
     await seedAccess(t);
     const spoofed = t.withIdentity({ email: ADMIN_EMAIL, emailVerified: false });
-    await expect(spoofed.query(api.members.list, {})).rejects.toThrow("Unauthorized");
+    await expect(spoofed.query(api.functions.members.list, {})).rejects.toThrow("Unauthorized");
   });
 
   it("matches the roster email case-insensitively", async () => {
     const t = convexTest(schema, modules);
     await seedAccess(t);
     const shouty = t.withIdentity({ email: "ADMIN@Example.COM", emailVerified: true });
-    const result = await shouty.query(api.auth.me, {});
+    const result = await shouty.query(api.functions.auth.me, {});
     expect(result?.isAdmin).toBe(true);
   });
 
   it("allows reads for a member", async () => {
     const t = convexTest(schema, modules);
     const { member } = await seedAccess(t);
-    const result = await member.query(api.members.list, {});
+    const result = await member.query(api.functions.members.list, {});
     expect(result.data.length).toBeGreaterThan(0);
   });
 });
@@ -103,10 +103,10 @@ describe("auth.me", () => {
   it("reports the access level, and null for someone without access", async () => {
     const t = convexTest(schema, modules);
     const { admin, member } = await seedAccess(t);
-    expect((await admin.query(api.auth.me, {}))?.accessLevel).toBe("admin");
-    expect((await member.query(api.auth.me, {}))?.isAdmin).toBe(false);
+    expect((await admin.query(api.functions.auth.me, {}))?.accessLevel).toBe("admin");
+    expect((await member.query(api.functions.auth.me, {}))?.isAdmin).toBe(false);
     const outsider = t.withIdentity({ email: OUTSIDER_EMAIL, emailVerified: true });
-    expect(await outsider.query(api.auth.me, {})).toBeNull();
+    expect(await outsider.query(api.functions.auth.me, {})).toBeNull();
   });
 });
 
@@ -114,7 +114,7 @@ describe("members.create", () => {
   it("lowercases the email and defaults access to none", async () => {
     const t = convexTest(schema, modules);
     const { admin } = await seedAccess(t);
-    const id = await admin.mutation(api.members.create, {
+    const id = await admin.mutation(api.functions.members.create, {
       name: "Ana",
       email: "  Ana.Tan@Example.COM ",
       registerDate: "2026-01-01",
@@ -131,7 +131,7 @@ describe("members.create", () => {
     const t = convexTest(schema, modules);
     const { admin } = await seedAccess(t);
     await expect(
-      admin.mutation(api.members.create, {
+      admin.mutation(api.functions.members.create, {
         name: "Impostor",
         email: ADMIN_EMAIL.toUpperCase(),
         registerDate: "2026-01-01",
@@ -144,9 +144,9 @@ describe("members.update", () => {
   it("stops an admin from removing their own admin access", async () => {
     const t = convexTest(schema, modules);
     const { admin } = await seedAccess(t);
-    const me = await admin.query(api.auth.me, {});
+    const me = await admin.query(api.functions.auth.me, {});
     await expect(
-      admin.mutation(api.members.update, { id: me!.id, accessLevel: "member" }),
+      admin.mutation(api.functions.members.update, { id: me!.id, accessLevel: "member" }),
     ).rejects.toThrow("You cannot remove your own admin access");
   });
 
@@ -161,12 +161,12 @@ describe("members.update", () => {
       return row!._id;
     });
 
-    await admin.mutation(api.members.update, { id: outsiderId, accessLevel: "member" });
+    await admin.mutation(api.functions.members.update, { id: outsiderId, accessLevel: "member" });
     const outsider = t.withIdentity({ email: OUTSIDER_EMAIL, emailVerified: true });
-    expect((await outsider.query(api.auth.me, {}))?.accessLevel).toBe("member");
+    expect((await outsider.query(api.functions.auth.me, {}))?.accessLevel).toBe("member");
 
-    await admin.mutation(api.members.update, { id: outsiderId, accessLevel: null });
-    expect(await outsider.query(api.auth.me, {})).toBeNull();
+    await admin.mutation(api.functions.members.update, { id: outsiderId, accessLevel: null });
+    expect(await outsider.query(api.functions.auth.me, {})).toBeNull();
   });
 });
 
@@ -193,7 +193,7 @@ describe("updates.create member–project constraint", () => {
     });
 
     await expect(
-      admin.mutation(api.updates.create, {
+      admin.mutation(api.functions.updates.create, {
         memberId,
         projectId: otherProjectId,
         meetupId,
@@ -262,7 +262,7 @@ describe("members.remove cascade", () => {
       return { victim, survivor, soloProject, sharedProject, meetupId };
     });
 
-    await admin.mutation(api.members.remove, { id: ids.victim });
+    await admin.mutation(api.functions.members.remove, { id: ids.victim });
 
     await t.run(async (ctx) => {
       expect(await ctx.db.get(ids.victim)).toBeNull();
@@ -287,7 +287,7 @@ describe("meetups.nextNumber", () => {
       await ctx.db.insert("meetups", { date: "2026-01-01", number: 47, updatedAt: Date.now() });
       await ctx.db.insert("meetups", { date: "2026-01-02", number: 12, updatedAt: Date.now() });
     });
-    expect(await member.query(api.meetups.nextNumber, {})).toBe(48);
+    expect(await member.query(api.functions.meetups.nextNumber, {})).toBe(48);
   });
 });
 
@@ -319,7 +319,7 @@ describe("projects.remove cascade", () => {
       return { projectId };
     });
 
-    await admin.mutation(api.projects.remove, { id: projectId });
+    await admin.mutation(api.functions.projects.remove, { id: projectId });
 
     await t.run(async (ctx) => {
       expect(await ctx.db.get(projectId as Id<"projects">)).toBeNull();

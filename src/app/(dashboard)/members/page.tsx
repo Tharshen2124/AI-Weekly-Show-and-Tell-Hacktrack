@@ -48,7 +48,7 @@ export default function MembersPage() {
   const searching = debouncedSearch !== "";
 
   const list = useQuery(
-    api.members.list,
+    api.functions.members.list,
     !searching
       ? {
           isActive: activeFilter === "all" ? undefined : activeFilter === "active",
@@ -58,7 +58,7 @@ export default function MembersPage() {
       : "skip",
   );
   const searchResults = useQuery(
-    api.members.search,
+    api.functions.members.search,
     searching ? { query: debouncedSearch  } : "skip",
   );
 

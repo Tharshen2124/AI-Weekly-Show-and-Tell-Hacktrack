@@ -22,10 +22,10 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const toast = useToast();
   const isAdmin = useIsAdmin();
   const project = useQuery(
-    api.projects.get,
+    api.functions.projects.get,
     { id: id as Id<"projects">  },
   );
-  const removeProject = useMutation(api.projects.remove);
+  const removeProject = useMutation(api.functions.projects.remove);
   const [editing, setEditing] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 

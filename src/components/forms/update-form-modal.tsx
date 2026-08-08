@@ -45,9 +45,9 @@ export function UpdateFormModal({ open, onClose, initial }: UpdateFormModalProps
 
 function UpdateFormFields({ initial, onClose }: { initial?: UpdateInitial; onClose: () => void }) {
   const toast = useToast();
-  const formOptions = useQuery(api.updates.formOptions, {});
-  const createUpdate = useMutation(api.updates.create);
-  const updateUpdate = useMutation(api.updates.update);
+  const formOptions = useQuery(api.functions.updates.formOptions, {});
+  const createUpdate = useMutation(api.functions.updates.create);
+  const updateUpdate = useMutation(api.functions.updates.update);
 
   const [memberId, setMemberId] = useState<string | null>(initial?.memberId ?? null);
   const [projectId, setProjectId] = useState<string | null>(initial?.projectId ?? null);

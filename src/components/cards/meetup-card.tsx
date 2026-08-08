@@ -14,7 +14,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { MeetupFormModal } from "@/components/forms/meetup-form-modal";
 import { UpdateAdminActions } from "./update-admin-actions";
 
-export type MeetupListItem = FunctionReturnType<typeof api.meetups.list>["meetups"][number];
+export type MeetupListItem = FunctionReturnType<typeof api.functions.meetups.list>["meetups"][number];
 
 export function MeetupCard({ meetup }: { meetup: MeetupListItem }) {
   const [open, setOpen] = useState(false);
@@ -22,7 +22,7 @@ export function MeetupCard({ meetup }: { meetup: MeetupListItem }) {
   const [confirming, setConfirming] = useState(false);
   const isAdmin = useIsAdmin();
   const toast = useToast();
-  const removeMeetup = useMutation(api.meetups.remove);
+  const removeMeetup = useMutation(api.functions.meetups.remove);
   const title = `Meetup #${meetup.number}`;
 
   return (

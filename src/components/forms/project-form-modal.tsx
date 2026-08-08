@@ -43,9 +43,9 @@ export function ProjectFormModal({ open, onClose, initial }: ProjectFormModalPro
 
 function ProjectFormFields({ initial, onClose }: { initial?: ProjectInitial; onClose: () => void }) {
   const toast = useToast();
-  const formOptions = useQuery(api.updates.formOptions, {});
-  const createProject = useMutation(api.projects.create);
-  const updateProject = useMutation(api.projects.update);
+  const formOptions = useQuery(api.functions.updates.formOptions, {});
+  const createProject = useMutation(api.functions.projects.create);
+  const updateProject = useMutation(api.functions.projects.update);
 
   const [name, setName] = useState(initial?.name ?? "");
   const [category, setCategory] = useState<ProjectCategory>(initial?.category ?? "solo");

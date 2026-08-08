@@ -36,7 +36,7 @@ function formatClock(totalSeconds: number): string {
 }
 
 export default function PresentPage() {
-  const members = useQuery(api.members.list, { isActive: true, pageSize: 200 });
+  const members = useQuery(api.functions.members.list, { isActive: true, pageSize: 200 });
 
   const [namesInput, setNamesInput] = useState("");
   const [order, setOrder] = useState<string[] | null>(null);

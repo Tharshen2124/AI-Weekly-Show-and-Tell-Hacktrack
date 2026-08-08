@@ -8,16 +8,16 @@
  * @module
  */
 
-import type * as auth from "../auth.js";
-import type * as bootstrap from "../bootstrap.js";
-import type * as dashboard from "../dashboard.js";
+import type * as functions_auth from "../functions/auth.js";
+import type * as functions_bootstrap from "../functions/bootstrap.js";
+import type * as functions_dashboard from "../functions/dashboard.js";
+import type * as functions_meetups from "../functions/meetups.js";
+import type * as functions_members from "../functions/members.js";
+import type * as functions_projects from "../functions/projects.js";
+import type * as functions_seed from "../functions/seed.js";
+import type * as functions_updates from "../functions/updates.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_metrics from "../lib/metrics.js";
-import type * as meetups from "../meetups.js";
-import type * as members from "../members.js";
-import type * as projects from "../projects.js";
-import type * as seed from "../seed.js";
-import type * as updates from "../updates.js";
 
 import type {
   ApiFromModules,
@@ -26,16 +26,16 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  auth: typeof auth;
-  bootstrap: typeof bootstrap;
-  dashboard: typeof dashboard;
+  "functions/auth": typeof functions_auth;
+  "functions/bootstrap": typeof functions_bootstrap;
+  "functions/dashboard": typeof functions_dashboard;
+  "functions/meetups": typeof functions_meetups;
+  "functions/members": typeof functions_members;
+  "functions/projects": typeof functions_projects;
+  "functions/seed": typeof functions_seed;
+  "functions/updates": typeof functions_updates;
   "lib/auth": typeof lib_auth;
   "lib/metrics": typeof lib_metrics;
-  meetups: typeof meetups;
-  members: typeof members;
-  projects: typeof projects;
-  seed: typeof seed;
-  updates: typeof updates;
 }>;
 
 /**

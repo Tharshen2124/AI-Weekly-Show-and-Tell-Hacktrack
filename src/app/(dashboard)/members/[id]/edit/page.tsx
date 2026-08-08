@@ -16,7 +16,7 @@ export default function MemberEditPage({ params }: { params: Promise<{ id: strin
   const router = useRouter();
   const { isLoading, isAdmin } = useAccess();
   const member = useQuery(
-    api.members.get,
+    api.functions.members.get,
     isAdmin ? { id: id as Id<"members"> } : "skip",
   );
 

@@ -1,5 +1,5 @@
-import { query } from "./_generated/server";
-import { requireMember } from "./lib/auth";
+import { query } from "../_generated/server";
+import { requireMember } from "../lib/auth";
 import { listMeetupsInner } from "./meetups";
 import { listMembersInner } from "./members";
 

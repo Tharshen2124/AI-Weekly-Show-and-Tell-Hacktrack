@@ -14,7 +14,7 @@ import { ProjectRowSkeleton } from "@/components/ui/skeletons";
 import { EmptyState } from "@/components/ui/error-state";
 import { PROJECT_CATEGORY_LABELS } from "@/lib/labels";
 
-type ProjectItem = FunctionReturnType<typeof api.projects.list>[number];
+type ProjectItem = FunctionReturnType<typeof api.functions.projects.list>[number];
 
 /** Names shown inline in the table; the rest collapse into a "+N more" hint. */
 const VISIBLE_MEMBERS = 2;
@@ -30,7 +30,7 @@ const GRID_COLS =
 function ProjectRow({ project }: { project: ProjectItem }) {
   const isAdmin = useIsAdmin();
   const toast = useToast();
-  const removeProject = useMutation(api.projects.remove);
+  const removeProject = useMutation(api.functions.projects.remove);
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
 
@@ -137,7 +137,7 @@ function ProjectRow({ project }: { project: ProjectItem }) {
 
 export default function ProjectsPage() {
   const isAdmin = useIsAdmin();
-  const projects = useQuery(api.projects.list, {});
+  const projects = useQuery(api.functions.projects.list, {});
   const [creating, setCreating] = useState(false);
   const [search, setSearch] = useState("");
 

@@ -35,7 +35,7 @@ function Section({
 }
 
 export default function DashboardPage() {
-  const summary = useQuery(api.dashboard.summary, {});
+  const summary = useQuery(api.functions.dashboard.summary, {});
 
   const stats = summary
     ? [
