@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { CalendarPlus, FolderPlus, MessageSquarePlus, UserPlus } from "lucide-react";
-import { useAuthStore } from "@/lib/auth-store";
+import { useIsAdmin } from "@/lib/use-access";
 import { ModalLayout } from "@/components/ui/modal-layout";
 import { MeetupFormModal } from "./meetup-form-modal";
 import { MemberForm } from "./member-form";
@@ -10,7 +10,7 @@ import { ProjectFormModal } from "./project-form-modal";
 import { UpdateFormModal } from "./update-form-modal";
 
 export function AdminControlPanel() {
-  const isAdmin = useAuthStore((s) => s.isAdmin);
+  const isAdmin = useIsAdmin();
   const [openModal, setOpenModal] = useState<
     "meetup" | "member" | "project" | "update" | null
   >(null);

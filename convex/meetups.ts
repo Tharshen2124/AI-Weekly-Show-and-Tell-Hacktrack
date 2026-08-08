@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query, QueryCtx } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
-import { requireAdmin, requireSession } from "./lib/session";
+import { requireAdmin, requireMember } from "./lib/auth";
 
 const PAGE_SIZE = 28;
 
@@ -57,20 +57,19 @@ export async function listMeetupsInner(
 
 export const list = query({
   args: {
-    token: v.string(),
     page: v.optional(v.number()),
     pageSize: v.optional(v.number()),
   },
-  handler: async (ctx, { token, ...args }) => {
-    await requireSession(ctx, token);
+  handler: async (ctx, args) => {
+    await requireMember(ctx);
     return await listMeetupsInner(ctx, args);
   },
 });
 
 export const get = query({
-  args: { token: v.string(), id: v.id("meetups") },
-  handler: async (ctx, { token, id }) => {
-    await requireSession(ctx, token);
+  args: { id: v.id("meetups") },
+  handler: async (ctx, { id }) => {
+    await requireMember(ctx);
     const meetup = await ctx.db.get(id);
     if (!meetup) return null;
     return await enrichMeetup(ctx, meetup);
@@ -78,9 +77,9 @@ export const get = query({
 });
 
 export const nextNumber = query({
-  args: { token: v.string() },
-  handler: async (ctx, { token }) => {
-    await requireSession(ctx, token);
+  args: {},
+  handler: async (ctx) => {
+    await requireMember(ctx);
     const all = await ctx.db.query("meetups").collect();
     return all.reduce((max, m) => Math.max(max, m.number), 0) + 1;
   },
@@ -92,9 +91,9 @@ const meetupFields = {
 };
 
 export const create = mutation({
-  args: { token: v.string(), ...meetupFields },
-  handler: async (ctx, { token, ...fields }) => {
-    await requireAdmin(ctx, token);
+  args: { ...meetupFields },
+  handler: async (ctx, fields) => {
+    await requireAdmin(ctx);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(fields.date)) {
       throw new Error("Date must be YYYY-MM-DD");
     }
@@ -104,13 +103,12 @@ export const create = mutation({
 
 export const update = mutation({
   args: {
-    token: v.string(),
     id: v.id("meetups"),
     date: v.optional(v.string()),
     number: v.optional(v.number()),
   },
-  handler: async (ctx, { token, id, ...fields }) => {
-    await requireAdmin(ctx, token);
+  handler: async (ctx, { id, ...fields }) => {
+    await requireAdmin(ctx);
     const existing = await ctx.db.get(id);
     if (!existing) throw new Error("Meetup not found");
     const patch: Record<string, unknown> = { updatedAt: Date.now() };
@@ -123,9 +121,9 @@ export const update = mutation({
 });
 
 export const remove = mutation({
-  args: { token: v.string(), id: v.id("meetups") },
-  handler: async (ctx, { token, id }) => {
-    await requireAdmin(ctx, token);
+  args: { id: v.id("meetups") },
+  handler: async (ctx, { id }) => {
+    await requireAdmin(ctx);
     const updates = await ctx.db
       .query("updates")
       .withIndex("by_meetup", (q) => q.eq("meetupId", id))

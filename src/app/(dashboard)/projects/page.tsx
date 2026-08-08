@@ -6,7 +6,7 @@ import { useMutation, useQuery } from "convex/react";
 import { FunctionReturnType } from "convex/server";
 import { CircleCheck, CircleDashed, FolderPlus, Pencil, Search, Trash2, X } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
-import { useAuthStore } from "@/lib/auth-store";
+import { useIsAdmin } from "@/lib/use-access";
 import { useToast } from "@/components/providers/toast-provider";
 import { ProjectFormModal } from "@/components/forms/project-form-modal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -28,8 +28,7 @@ const GRID_COLS =
   "sm:grid-cols-[minmax(0,1fr)_8rem_minmax(0,1fr)_6rem_7rem_4rem]";
 
 function ProjectRow({ project }: { project: ProjectItem }) {
-  const token = useAuthStore((s) => s.token);
-  const isAdmin = useAuthStore((s) => s.isAdmin);
+  const isAdmin = useIsAdmin();
   const toast = useToast();
   const removeProject = useMutation(api.projects.remove);
   const [editing, setEditing] = useState(false);
@@ -124,9 +123,8 @@ function ProjectRow({ project }: { project: ProjectItem }) {
           project.updateCount === 1 ? "update" : "updates"
         }. This cannot be undone.`}
         onConfirm={async () => {
-          if (!token) return;
           try {
-            await removeProject({ token, id: project._id });
+            await removeProject({ id: project._id });
             toast.success("Successfully deleted project!");
           } catch {
             toast.error("Error occurred, project was not deleted.");
@@ -138,9 +136,8 @@ function ProjectRow({ project }: { project: ProjectItem }) {
 }
 
 export default function ProjectsPage() {
-  const token = useAuthStore((s) => s.token);
-  const isAdmin = useAuthStore((s) => s.isAdmin);
-  const projects = useQuery(api.projects.list, token ? { token } : "skip");
+  const isAdmin = useIsAdmin();
+  const projects = useQuery(api.projects.list, {});
   const [creating, setCreating] = useState(false);
   const [search, setSearch] = useState("");
 

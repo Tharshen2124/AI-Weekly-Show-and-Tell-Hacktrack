@@ -5,7 +5,6 @@ import { useMutation, useQuery } from "convex/react";
 import { z } from "zod";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
-import { useAuthStore } from "@/lib/auth-store";
 import { useToast } from "@/components/providers/toast-provider";
 import { ModalLayout } from "@/components/ui/modal-layout";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -45,9 +44,8 @@ export function UpdateFormModal({ open, onClose, initial }: UpdateFormModalProps
 }
 
 function UpdateFormFields({ initial, onClose }: { initial?: UpdateInitial; onClose: () => void }) {
-  const token = useAuthStore((s) => s.token);
   const toast = useToast();
-  const formOptions = useQuery(api.updates.formOptions, token ? { token } : "skip");
+  const formOptions = useQuery(api.updates.formOptions, {});
   const createUpdate = useMutation(api.updates.create);
   const updateUpdate = useMutation(api.updates.update);
 
@@ -91,11 +89,9 @@ function UpdateFormFields({ initial, onClose }: { initial?: UpdateInitial; onClo
       toast.error(`Missing field: ${message}`);
       return;
     }
-    if (!token) return;
     setPending(true);
     try {
       const payload = {
-        token,
         memberId: parsed.data.memberId as Id<"members">,
         projectId: parsed.data.projectId as Id<"projects">,
         meetupId: parsed.data.meetupId as Id<"meetups">,

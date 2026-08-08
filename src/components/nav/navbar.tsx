@@ -1,13 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { LogOut, Menu, Moon, ShieldCheck, Sun, X } from "lucide-react";
 import { useState } from "react";
-import { useMutation } from "convex/react";
-import { api } from "../../../convex/_generated/api";
-import { useAuthStore } from "@/lib/auth-store";
+import { useClerk } from "@clerk/nextjs";
+import { useAccess } from "@/lib/use-access";
 import { useTheme } from "@/components/providers/theme-provider";
 import { useToast } from "@/components/providers/toast-provider";
 
@@ -28,22 +27,15 @@ function Brand() {
 
 export function Navbar() {
   const pathname = usePathname();
-  const router = useRouter();
-  const { token, isAdmin, clearSession } = useAuthStore();
+  const { isAdmin } = useAccess();
+  const { signOut } = useClerk();
   const { theme, toggle } = useTheme();
   const toast = useToast();
-  const logout = useMutation(api.auth.logout);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = async () => {
-    try {
-      if (token) await logout({ token });
-    } catch {
-      // Session may already be gone server-side; still log out locally.
-    }
-    clearSession();
     toast.info("Logged out.");
-    router.replace("/login");
+    await signOut({ redirectUrl: "/login" });
   };
 
   const navLink = (href: string, label: string, block = false) => {

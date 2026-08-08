@@ -5,7 +5,6 @@ import { Pencil, Trash2 } from "lucide-react";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
-import { useAuthStore } from "@/lib/auth-store";
 import { useToast } from "@/components/providers/toast-provider";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { UpdateFormModal } from "@/components/forms/update-form-modal";
@@ -22,7 +21,6 @@ interface UpdateAdminActionsProps {
 
 /** Edit + delete affordances for a single update row (admin only). */
 export function UpdateAdminActions({ update }: UpdateAdminActionsProps) {
-  const token = useAuthStore((s) => s.token);
   const toast = useToast();
   const removeUpdate = useMutation(api.updates.remove);
   const [editing, setEditing] = useState(false);
@@ -51,9 +49,8 @@ export function UpdateAdminActions({ update }: UpdateAdminActionsProps) {
         title="Delete update"
         description="This permanently removes this talk from the record. This cannot be undone."
         onConfirm={async () => {
-          if (!token) return;
           try {
-            await removeUpdate({ token, id: update.id });
+            await removeUpdate({ id: update.id });
             toast.success("Successfully deleted update!");
           } catch {
             toast.error("Error occurred, update was not deleted.");

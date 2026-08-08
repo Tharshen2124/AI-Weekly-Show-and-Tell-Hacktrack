@@ -7,7 +7,7 @@ import { useMutation, useQuery } from "convex/react";
 import { ArrowLeft, CircleCheck, CircleDashed, Pencil, Trash2 } from "lucide-react";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
-import { useAuthStore } from "@/lib/auth-store";
+import { useIsAdmin } from "@/lib/use-access";
 import { useToast } from "@/components/providers/toast-provider";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ProjectFormModal } from "@/components/forms/project-form-modal";
@@ -20,11 +20,10 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const { id } = use(params);
   const router = useRouter();
   const toast = useToast();
-  const token = useAuthStore((s) => s.token);
-  const isAdmin = useAuthStore((s) => s.isAdmin);
+  const isAdmin = useIsAdmin();
   const project = useQuery(
     api.projects.get,
-    token ? { token, id: id as Id<"projects"> } : "skip",
+    { id: id as Id<"projects">  },
   );
   const removeProject = useMutation(api.projects.remove);
   const [editing, setEditing] = useState(false);
@@ -167,9 +166,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               project.updates.length === 1 ? "update" : "updates"
             }. This cannot be undone.`}
             onConfirm={async () => {
-              if (!token) return;
               try {
-                await removeProject({ token, id: project._id });
+                await removeProject({ id: project._id });
                 toast.success("Successfully deleted project!");
                 router.push("/projects");
               } catch {

@@ -9,10 +9,10 @@
  */
 
 import type * as auth from "../auth.js";
-import type * as crons from "../crons.js";
+import type * as bootstrap from "../bootstrap.js";
 import type * as dashboard from "../dashboard.js";
+import type * as lib_auth from "../lib/auth.js";
 import type * as lib_metrics from "../lib/metrics.js";
-import type * as lib_session from "../lib/session.js";
 import type * as meetups from "../meetups.js";
 import type * as members from "../members.js";
 import type * as projects from "../projects.js";
@@ -27,10 +27,10 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
-  crons: typeof crons;
+  bootstrap: typeof bootstrap;
   dashboard: typeof dashboard;
+  "lib/auth": typeof lib_auth;
   "lib/metrics": typeof lib_metrics;
-  "lib/session": typeof lib_session;
   meetups: typeof meetups;
   members: typeof members;
   projects: typeof projects;

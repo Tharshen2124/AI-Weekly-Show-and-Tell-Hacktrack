@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { requireAdmin, requireSession } from "./lib/session";
+import { requireAdmin, requireMember } from "./lib/auth";
 import { Id } from "./_generated/dataModel";
 import { MutationCtx } from "./_generated/server";
 
@@ -22,14 +22,13 @@ async function assertMemberOnProject(
 
 export const create = mutation({
   args: {
-    token: v.string(),
     meetupId: v.id("meetups"),
     projectId: v.id("projects"),
     memberId: v.id("members"),
     description: v.string(),
   },
-  handler: async (ctx, { token, ...fields }) => {
-    await requireAdmin(ctx, token);
+  handler: async (ctx, fields) => {
+    await requireAdmin(ctx);
     await assertMemberOnProject(ctx, fields.memberId, fields.projectId);
     return await ctx.db.insert("updates", { ...fields, updatedAt: Date.now() });
   },
@@ -37,15 +36,14 @@ export const create = mutation({
 
 export const update = mutation({
   args: {
-    token: v.string(),
     id: v.id("updates"),
     meetupId: v.optional(v.id("meetups")),
     projectId: v.optional(v.id("projects")),
     memberId: v.optional(v.id("members")),
     description: v.optional(v.string()),
   },
-  handler: async (ctx, { token, id, ...fields }) => {
-    await requireAdmin(ctx, token);
+  handler: async (ctx, { id, ...fields }) => {
+    await requireAdmin(ctx);
     const existing = await ctx.db.get(id);
     if (!existing) throw new Error("Update not found");
 
@@ -63,18 +61,18 @@ export const update = mutation({
 });
 
 export const remove = mutation({
-  args: { token: v.string(), id: v.id("updates") },
-  handler: async (ctx, { token, id }) => {
-    await requireAdmin(ctx, token);
+  args: { id: v.id("updates") },
+  handler: async (ctx, { id }) => {
+    await requireAdmin(ctx);
     await ctx.db.delete(id);
     return null;
   },
 });
 
 export const formOptions = query({
-  args: { token: v.string() },
-  handler: async (ctx, { token }) => {
-    await requireSession(ctx, token);
+  args: {},
+  handler: async (ctx) => {
+    await requireMember(ctx);
     const [members, projects, links, meetups] = await Promise.all([
       ctx.db.query("members").collect(),
       ctx.db.query("projects").collect(),

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery } from "convex/react";
 import { Check, ListFilter, Search, UserPlus, X } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
-import { useAuthStore } from "@/lib/auth-store";
+import { useIsAdmin } from "@/lib/use-access";
 import { MemberCard } from "@/components/cards/member-card";
 import { MemberForm } from "@/components/forms/member-form";
 import { ModalLayout } from "@/components/ui/modal-layout";
@@ -19,8 +19,7 @@ import {
 } from "@/lib/labels";
 
 export default function MembersPage() {
-  const token = useAuthStore((s) => s.token);
-  const isAdmin = useAuthStore((s) => s.isAdmin);
+  const isAdmin = useIsAdmin();
 
   const [activeFilter, setActiveFilter] = useState<MemberActiveFilter>("active");
   const [sortBy, setSortBy] = useState<MemberSort>("recent_talks");
@@ -50,9 +49,8 @@ export default function MembersPage() {
 
   const list = useQuery(
     api.members.list,
-    token && !searching
+    !searching
       ? {
-          token,
           isActive: activeFilter === "all" ? undefined : activeFilter === "active",
           sortBy,
           page,
@@ -61,7 +59,7 @@ export default function MembersPage() {
   );
   const searchResults = useQuery(
     api.members.search,
-    token && searching ? { token, query: debouncedSearch } : "skip",
+    searching ? { query: debouncedSearch  } : "skip",
   );
 
   const setFilterAndReset = (next: MemberActiveFilter) => {

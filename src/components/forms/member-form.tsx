@@ -5,7 +5,6 @@ import { useMutation } from "convex/react";
 import { z } from "zod";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
-import { useAuthStore } from "@/lib/auth-store";
 import { useToast } from "@/components/providers/toast-provider";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { InlineErrorBanner } from "@/components/ui/error-state";
@@ -22,6 +21,15 @@ const schema = z.object({
     .min(0, "Progress talks cannot be negative"),
 });
 
+/** "none" is the UI spelling of an absent accessLevel: on the roster, no sign-in. */
+export type AccessChoice = "none" | "member" | "admin";
+
+const ACCESS_LABELS: Record<AccessChoice, string> = {
+  none: "No access",
+  member: "Member — can view",
+  admin: "Admin — can edit",
+};
+
 export interface MemberFormValues {
   id?: Id<"members">;
   name: string;
@@ -29,6 +37,7 @@ export interface MemberFormValues {
   isActive: boolean;
   registerDate: string;
   progressTalkNum: number;
+  accessLevel: AccessChoice;
 }
 
 export function MemberForm({
@@ -40,7 +49,6 @@ export function MemberForm({
   onSaved: () => void;
   onCancel: () => void;
 }) {
-  const token = useAuthStore((s) => s.token);
   const toast = useToast();
   const createMember = useMutation(api.members.create);
   const updateMember = useMutation(api.members.update);
@@ -52,6 +60,7 @@ export function MemberForm({
       isActive: false,
       registerDate: todayISO(),
       progressTalkNum: 0,
+      accessLevel: "none",
     },
   );
   const [error, setError] = useState<string | null>(null);
@@ -70,27 +79,36 @@ export function MemberForm({
       toast.error(`Missing field: ${message}`);
       return;
     }
-    if (!token) return;
     setPending(true);
     try {
       const payload = {
-        token,
         name: parsed.data.name,
         email: parsed.data.email,
         isActive: values.isActive,
         registerDate: parsed.data.registerDate,
         progressTalkNum: parsed.data.progressTalkNum,
       };
+      const accessLevel = values.accessLevel === "none" ? null : values.accessLevel;
       if (initial?.id) {
-        await updateMember({ ...payload, id: initial.id });
+        await updateMember({ ...payload, id: initial.id, accessLevel });
         toast.success("Successfully updated member!");
       } else {
-        await createMember(payload);
+        await createMember({ ...payload, accessLevel: accessLevel ?? undefined });
         toast.success("Successfully added member!");
       }
       onSaved();
-    } catch {
-      toast.error("Error occurred, member was not saved.");
+    } catch (e) {
+      // Surface the real reason for the two rejections an admin can actually hit.
+      const message = e instanceof Error ? e.message : "";
+      if (message.includes("already uses that email")) {
+        setError("Another member already uses that email.");
+        toast.error("Another member already uses that email.");
+      } else if (message.includes("your own admin access")) {
+        setError("You cannot remove your own admin access.");
+        toast.error("You cannot remove your own admin access.");
+      } else {
+        toast.error("Error occurred, member was not saved.");
+      }
     } finally {
       setPending(false);
     }
@@ -129,6 +147,23 @@ export function MemberForm({
           />
         </Field>
       </div>
+      <Field label="App access">
+        <select
+          value={values.accessLevel}
+          onChange={(e) => set("accessLevel", e.target.value as AccessChoice)}
+          className={inputClass}
+        >
+          {(Object.keys(ACCESS_LABELS) as AccessChoice[]).map((level) => (
+            <option key={level} value={level}>
+              {ACCESS_LABELS[level]}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1.5 text-xs text-ink-faint">
+          Anything other than “No access” lets this person sign in with the Google account
+          matching their email above.
+        </p>
+      </Field>
       <label className="flex cursor-pointer items-center gap-2.5 text-sm">
         <input
           type="checkbox"
