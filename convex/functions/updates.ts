@@ -1,8 +1,8 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import { requireAdmin, requireMember } from "./lib/auth";
-import { Id } from "./_generated/dataModel";
-import { MutationCtx } from "./_generated/server";
+import { mutation, query } from "../_generated/server";
+import { requireAdmin, requireMember } from "../lib/auth";
+import { Id } from "../_generated/dataModel";
+import { MutationCtx } from "../_generated/server";
 
 async function assertMemberOnProject(
   ctx: MutationCtx,

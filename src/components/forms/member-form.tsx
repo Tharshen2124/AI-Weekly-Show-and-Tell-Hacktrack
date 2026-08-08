@@ -50,8 +50,8 @@ export function MemberForm({
   onCancel: () => void;
 }) {
   const toast = useToast();
-  const createMember = useMutation(api.members.create);
-  const updateMember = useMutation(api.members.update);
+  const createMember = useMutation(api.functions.members.create);
+  const updateMember = useMutation(api.functions.members.update);
 
   const [values, setValues] = useState<MemberFormValues>(
     initial ?? {

@@ -10,7 +10,7 @@ import { EmptyState } from "@/components/ui/error-state";
 
 export default function MeetupsPage() {
   const [page, setPage] = useState(1);
-  const list = useQuery(api.meetups.list, { page  });
+  const list = useQuery(api.functions.meetups.list, { page  });
 
   return (
     <div className="space-y-10">

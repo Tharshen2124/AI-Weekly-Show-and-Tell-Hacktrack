@@ -1,7 +1,7 @@
 import { v } from "convex/values";
-import { mutation, query, QueryCtx } from "./_generated/server";
-import { Doc, Id } from "./_generated/dataModel";
-import { requireAdmin, requireMember } from "./lib/auth";
+import { mutation, query, QueryCtx } from "../_generated/server";
+import { Doc, Id } from "../_generated/dataModel";
+import { requireAdmin, requireMember } from "../lib/auth";
 
 const PAGE_SIZE = 28;
 

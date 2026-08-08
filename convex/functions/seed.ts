@@ -1,5 +1,5 @@
-import { internalMutation } from "./_generated/server";
-import { Id } from "./_generated/dataModel";
+import { internalMutation } from "../_generated/server";
+import { Id } from "../_generated/dataModel";
 
 // Deterministic PRNG so reseeding produces the same data.
 function mulberry32(seed: number) {

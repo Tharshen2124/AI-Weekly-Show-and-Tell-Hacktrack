@@ -1,7 +1,7 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import { projectCategoryValidator } from "./schema";
-import { requireAdmin, requireMember } from "./lib/auth";
+import { mutation, query } from "../_generated/server";
+import { projectCategoryValidator } from "../schema";
+import { requireAdmin, requireMember } from "../lib/auth";
 
 export const list = query({
   args: {},

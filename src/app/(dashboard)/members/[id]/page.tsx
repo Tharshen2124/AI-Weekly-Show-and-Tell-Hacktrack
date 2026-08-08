@@ -23,10 +23,10 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
   const toast = useToast();
   const isAdmin = useIsAdmin();
   const member = useQuery(
-    api.members.get,
+    api.functions.members.get,
     { id: id as Id<"members">  },
   );
-  const removeMember = useMutation(api.members.remove);
+  const removeMember = useMutation(api.functions.members.remove);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   if (member === null) {

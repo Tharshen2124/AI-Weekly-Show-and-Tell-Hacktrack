@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeMemberMetrics, daysBetween, formatDuration } from "./metrics";
+import { computeMemberMetrics, daysBetween, formatDuration } from "../../../convex/lib/metrics";
 
 const TODAY = "2026-07-31";
 

@@ -1,7 +1,7 @@
 import { v } from "convex/values";
-import { internalMutation } from "./_generated/server";
-import { accessLevelValidator } from "./schema";
-import { normalizeEmail } from "./lib/auth";
+import { internalMutation } from "../_generated/server";
+import { accessLevelValidator } from "../schema";
+import { normalizeEmail } from "../lib/auth";
 
 /**
  * Grants app access by email, creating a member row if none exists.

@@ -27,8 +27,8 @@ import { UpdateAdminActions } from "./update-admin-actions";
 import { PROJECT_CATEGORY_LABELS } from "@/lib/labels";
 import { formatDate } from "@/lib/format";
 
-export type MemberListItem = FunctionReturnType<typeof api.members.list>["data"][number];
-type MemberDetail = NonNullable<FunctionReturnType<typeof api.members.get>>;
+export type MemberListItem = FunctionReturnType<typeof api.functions.members.list>["data"][number];
+type MemberDetail = NonNullable<FunctionReturnType<typeof api.functions.members.get>>;
 type MemberProject = MemberDetail["projects"][number];
 
 function Metric({
@@ -88,7 +88,7 @@ export function MemberCard({ member }: { member: MemberListItem }) {
 function ProjectSection({ project }: { project: MemberProject }) {
   const isAdmin = useIsAdmin();
   const toast = useToast();
-  const removeProject = useMutation(api.projects.remove);
+  const removeProject = useMutation(api.functions.projects.remove);
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
 
@@ -191,8 +191,8 @@ export function MemberDetailModal({
 }) {
   const isAdmin = useIsAdmin();
   const toast = useToast();
-  const member = useQuery(api.members.get, { id: memberId  });
-  const removeMember = useMutation(api.members.remove);
+  const member = useQuery(api.functions.members.get, { id: memberId  });
+  const removeMember = useMutation(api.functions.members.remove);
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
 

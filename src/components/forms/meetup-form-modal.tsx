@@ -41,9 +41,9 @@ export function MeetupFormModal({ open, onClose, initial }: MeetupFormModalProps
 
 function MeetupFormFields({ initial, onClose }: { initial?: MeetupInitial; onClose: () => void }) {
   const toast = useToast();
-  const nextNumber = useQuery(api.meetups.nextNumber, {});
-  const createMeetup = useMutation(api.meetups.create);
-  const updateMeetup = useMutation(api.meetups.update);
+  const nextNumber = useQuery(api.functions.meetups.nextNumber, {});
+  const createMeetup = useMutation(api.functions.meetups.create);
+  const updateMeetup = useMutation(api.functions.meetups.update);
 
   // null = untouched; new meetups pre-fill with the next sequence number.
   const [numberInput, setNumberInput] = useState<string | null>(

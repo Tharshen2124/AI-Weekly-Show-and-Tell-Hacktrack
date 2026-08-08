@@ -1,9 +1,9 @@
 import { v } from "convex/values";
-import { mutation, query, QueryCtx, MutationCtx } from "./_generated/server";
-import { Doc, Id } from "./_generated/dataModel";
-import { accessLevelValidator } from "./schema";
-import { normalizeEmail, requireAdmin, requireMember } from "./lib/auth";
-import { computeMemberMetrics, MemberMetrics, UpdateForMetrics } from "./lib/metrics";
+import { mutation, query, QueryCtx, MutationCtx } from "../_generated/server";
+import { Doc, Id } from "../_generated/dataModel";
+import { accessLevelValidator } from "../schema";
+import { normalizeEmail, requireAdmin, requireMember } from "../lib/auth";
+import { computeMemberMetrics, MemberMetrics, UpdateForMetrics } from "../lib/metrics";
 
 const PAGE_SIZE = 24;
 

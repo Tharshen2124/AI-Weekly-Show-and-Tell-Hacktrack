@@ -22,7 +22,7 @@ interface UpdateAdminActionsProps {
 /** Edit + delete affordances for a single update row (admin only). */
 export function UpdateAdminActions({ update }: UpdateAdminActionsProps) {
   const toast = useToast();
-  const removeUpdate = useMutation(api.updates.remove);
+  const removeUpdate = useMutation(api.functions.updates.remove);
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
 
