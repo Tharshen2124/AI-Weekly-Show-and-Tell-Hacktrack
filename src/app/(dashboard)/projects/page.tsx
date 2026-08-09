@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery } from "convex/react";
 import { FunctionReturnType } from "convex/server";
@@ -10,11 +10,12 @@ import { useIsAdmin } from "@/lib/use-access";
 import { useToast } from "@/components/providers/toast-provider";
 import { ProjectFormModal } from "@/components/forms/project-form-modal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Pagination } from "@/components/ui/pagination";
 import { ProjectRowSkeleton } from "@/components/ui/skeletons";
 import { EmptyState } from "@/components/ui/error-state";
 import { PROJECT_CATEGORY_LABELS } from "@/lib/labels";
 
-type ProjectItem = FunctionReturnType<typeof api.functions.projects.list>[number];
+type ProjectItem = FunctionReturnType<typeof api.functions.projects.list>["data"][number];
 
 /** Names shown inline in the table; the rest collapse into a "+N more" hint. */
 const VISIBLE_MEMBERS = 2;
@@ -137,13 +138,19 @@ function ProjectRow({ project }: { project: ProjectItem }) {
 
 export default function ProjectsPage() {
   const isAdmin = useIsAdmin();
-  const projects = useQuery(api.functions.projects.list, {});
   const [creating, setCreating] = useState(false);
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(1);
 
-  // The list query returns every project, so filtering stays on the client.
-  const query = search.trim().toLowerCase();
-  const visible = projects?.filter((p) => p.name.toLowerCase().includes(query));
+  // 300ms debounce — filtering happens on the server now, so every keystroke
+  // would otherwise be a round trip.
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchInput.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  const result = useQuery(api.functions.projects.list, { search: debouncedSearch, page });
 
   return (
     <div className="space-y-6">
@@ -169,15 +176,21 @@ export default function ProjectsPage() {
       <div className="relative max-w-md">
         <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-ink-faint" />
         <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          value={searchInput}
+          onChange={(e) => {
+            setSearchInput(e.target.value);
+            setPage(1);
+          }}
           placeholder="Search projects by name…"
           className="w-full rounded-card border border-edge bg-surface-raised py-2.5 pr-9 pl-9 text-sm outline-none transition-colors placeholder:text-ink-faint focus:border-edge-strong"
         />
-        {search && (
+        {searchInput && (
           <button
             aria-label="Clear search"
-            onClick={() => setSearch("")}
+            onClick={() => {
+              setSearchInput("");
+              setPage(1);
+            }}
             className="absolute top-1/2 right-3 -translate-y-1/2 text-ink-faint hover:text-ink"
           >
             <X className="h-4 w-4" />
@@ -196,23 +209,30 @@ export default function ProjectsPage() {
           <span>Status</span>
           <span />
         </div>
-        {visible === undefined ? (
+        {result === undefined ? (
           <>
             <ProjectRowSkeleton />
             <ProjectRowSkeleton />
             <ProjectRowSkeleton />
             <ProjectRowSkeleton />
           </>
-        ) : visible.length === 0 ? (
+        ) : result.data.length === 0 ? (
           <div className="p-4">
             <EmptyState
-              message={query ? `No projects match “${search.trim()}”.` : "No projects yet."}
+              message={
+                debouncedSearch ? `No projects match “${debouncedSearch}”.` : "No projects yet."
+              }
             />
           </div>
         ) : (
-          visible.map((project) => <ProjectRow key={project._id} project={project} />)
+          result.data.map((project) => <ProjectRow key={project._id} project={project} />)
         )}
       </div>
+
+      {/* `result.page` is the clamped page the server actually served. */}
+      {result && (
+        <Pagination page={result.page} totalPages={result.totalPages} onPageChange={setPage} />
+      )}
 
       <ProjectFormModal open={creating} onClose={() => setCreating(false)} />
     </div>

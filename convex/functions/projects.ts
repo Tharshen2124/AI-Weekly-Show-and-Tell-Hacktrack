@@ -3,35 +3,62 @@ import { mutation, query } from "../_generated/server";
 import { projectCategoryValidator } from "../schema";
 import { requireAdmin, requireMember } from "../lib/auth";
 
+const PAGE_SIZE = 15;
+
 export const list = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    /** Case-insensitive substring match on the name; blank means no filter. */
+    search: v.optional(v.string()),
+    page: v.optional(v.number()),
+    pageSize: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
     await requireMember(ctx);
-    const [projects, links, updates, members] = await Promise.all([
-      ctx.db.query("projects").collect(),
-      ctx.db.query("projectMembers").collect(),
-      ctx.db.query("updates").collect(),
-      ctx.db.query("members").collect(),
-    ]);
-    const memberById = new Map(members.map((m) => [m._id, m]));
-    const updateCountByProject = new Map<string, number>();
-    for (const u of updates) {
-      updateCountByProject.set(u.projectId, (updateCountByProject.get(u.projectId) ?? 0) + 1);
-    }
-    return projects
-      .map((p) => ({
-        ...p,
-        members: links
-          .filter((l) => l.projectId === p._id)
-          .map((l) => {
-            const m = memberById.get(l.memberId);
-            return m ? { id: m._id, name: m.name } : null;
-          })
-          .filter((m): m is { id: (typeof members)[number]["_id"]; name: string } => m !== null)
-          .sort((a, b) => a.name.localeCompare(b.name)),
-        updateCount: updateCountByProject.get(p._id) ?? 0,
-      }))
-      .sort((a, b) => a.name.localeCompare(b.name));
+
+    const pageSize = args.pageSize ?? PAGE_SIZE;
+    const needle = (args.search ?? "").trim().toLowerCase();
+
+    // Only `projects` is read whole: a substring match is not something an index
+    // can serve, and the row count is needed for `totalPages`. Members and update
+    // counts load per row *after* the slice, so they cost one page rather than
+    // three full table scans.
+    const all = await ctx.db.query("projects").collect();
+    const matched =
+      needle === "" ? all : all.filter((p) => p.name.toLowerCase().includes(needle));
+    // Sorted here rather than read through `by_name`, because index order is UTF-8
+    // byte order — it would put every capitalised name ahead of every lowercase
+    // one ("ZeroDay" before "apple-tracker").
+    matched.sort((a, b) => a.name.localeCompare(b.name));
+
+    const total = matched.length;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    // Clamped, not just floored the way members.list does: deleting the last row
+    // of the last page would otherwise leave the client asking for a page that no
+    // longer exists and getting a blank table. The page actually served comes back
+    // in the result — Pagination derives prev/next from the page it is handed.
+    const page = Math.min(Math.max(1, args.page ?? 1), totalPages);
+
+    const data = await Promise.all(
+      matched.slice((page - 1) * pageSize, page * pageSize).map(async (project) => {
+        const [links, updates] = await Promise.all([
+          ctx.db
+            .query("projectMembers")
+            .withIndex("by_project", (q) => q.eq("projectId", project._id))
+            .collect(),
+          ctx.db
+            .query("updates")
+            .withIndex("by_project", (q) => q.eq("projectId", project._id))
+            .collect(),
+        ]);
+        const members = (await Promise.all(links.map((l) => ctx.db.get(l.memberId))))
+          .filter((m) => m !== null)
+          .map((m) => ({ id: m._id, name: m.name }))
+          .sort((a, b) => a.name.localeCompare(b.name));
+        return { ...project, members, updateCount: updates.length };
+      }),
+    );
+
+    return { data, page, totalPages, total };
   },
 });
 

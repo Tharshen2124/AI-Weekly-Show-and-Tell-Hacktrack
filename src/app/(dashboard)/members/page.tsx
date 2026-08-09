@@ -172,16 +172,16 @@ export default function MembersPage() {
           }
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 pb-20 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           {members.map((member) => (
             <MemberCard key={member._id} member={member} />
           ))}
         </div>
       )}
 
-      {/* Floating pagination — hidden while searching */}
-      {!searching && list && list.totalPages > 1 && (
-        <Pagination page={page} totalPages={list.totalPages} onPageChange={setPage} floating />
+      {/* Hidden while searching — search returns one unpaged batch. */}
+      {!searching && list && (
+        <Pagination page={page} totalPages={list.totalPages} onPageChange={setPage} />
       )}
 
       <ModalLayout open={creating} onClose={() => setCreating(false)} title="New Member" wide>
