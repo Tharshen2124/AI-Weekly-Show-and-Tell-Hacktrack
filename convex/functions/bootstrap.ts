@@ -7,8 +7,9 @@ import { normalizeEmail } from "../lib/auth";
  * Grants app access by email, creating a member row if none exists.
  *
  * This is the only way to create the first admin: every other path requires an
- * admin already. Run it with `npx convex run bootstrap:grantAccess`. It is
- * idempotent, so it is safe to re-run after wiping the database.
+ * admin already. Run it with `npx convex run functions/bootstrap:grantAccess`
+ * (add `--prod` to target production). It is idempotent, so it is safe to re-run
+ * after wiping the database.
  */
 export const grantAccess = internalMutation({
   args: {

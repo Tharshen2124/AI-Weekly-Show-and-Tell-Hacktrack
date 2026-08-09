@@ -33,16 +33,47 @@ async function enrichMeetup(ctx: QueryCtx, meetup: Doc<"meetups">) {
   return { ...meetup, updates, updateCount: updates.length };
 }
 
+/**
+ * Meetups in an inclusive date range. Either end may be left open, and every
+ * combination is served by `by_date`, so a search reads only the rows it matches
+ * rather than the whole table.
+ */
+async function meetupsInRange(ctx: QueryCtx, from?: string, to?: string) {
+  if (from && to) {
+    return await ctx.db
+      .query("meetups")
+      .withIndex("by_date", (q) => q.gte("date", from).lte("date", to))
+      .collect();
+  }
+  if (from) {
+    return await ctx.db
+      .query("meetups")
+      .withIndex("by_date", (q) => q.gte("date", from))
+      .collect();
+  }
+  if (to) {
+    return await ctx.db
+      .query("meetups")
+      .withIndex("by_date", (q) => q.lte("date", to))
+      .collect();
+  }
+  return await ctx.db.query("meetups").collect();
+}
+
 /** Shared by meetups.list and dashboard.summary. */
 export async function listMeetupsInner(
   ctx: QueryCtx,
-  args: { page?: number; pageSize?: number },
+  args: { from?: string; to?: string; page?: number; pageSize?: number },
 ) {
   {
     const page = Math.max(1, args.page ?? 1);
     const pageSize = args.pageSize ?? PAGE_SIZE;
+    // A cleared date field arrives as "", which must mean "this end is open"
+    // rather than "match the empty date".
+    const from = args.from?.trim() || undefined;
+    const to = args.to?.trim() || undefined;
 
-    const all = await ctx.db.query("meetups").collect();
+    const all = await meetupsInRange(ctx, from, to);
     all.sort((a, b) => b.date.localeCompare(a.date) || b.number - a.number);
 
     const totalPages = Math.max(1, Math.ceil(all.length / pageSize));
@@ -57,6 +88,9 @@ export async function listMeetupsInner(
 
 export const list = query({
   args: {
+    /** Inclusive date bounds, YYYY-MM-DD; either may be blank to leave that end open. */
+    from: v.optional(v.string()),
+    to: v.optional(v.string()),
     page: v.optional(v.number()),
     pageSize: v.optional(v.number()),
   },

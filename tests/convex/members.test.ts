@@ -4,44 +4,7 @@ import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import schema from "../../convex/schema";
 import { modules } from "./test.setup";
-
-const ADMIN_EMAIL = "admin@example.com";
-const MEMBER_EMAIL = "member@example.com";
-const OUTSIDER_EMAIL = "outsider@example.com";
-
-function memberDoc(name: string, overrides: Record<string, unknown> = {}) {
-  return {
-    name,
-    email: `${name.toLowerCase()}@example.com`,
-    isActive: true,
-    registerDate: "2026-01-01",
-    progressTalkNum: 0,
-    updatedAt: Date.now(),
-    ...overrides,
-  };
-}
-
-/** Seeds the two people who can sign in, and returns clients acting as each. */
-async function seedAccess(t: ReturnType<typeof convexTest>) {
-  await t.run(async (ctx) => {
-    await ctx.db.insert("members", {
-      ...memberDoc("Admin"),
-      email: ADMIN_EMAIL,
-      accessLevel: "admin" as const,
-    });
-    await ctx.db.insert("members", {
-      ...memberDoc("Member"),
-      email: MEMBER_EMAIL,
-      accessLevel: "member" as const,
-    });
-    // On the roster but with no access level granted.
-    await ctx.db.insert("members", { ...memberDoc("Outsider"), email: OUTSIDER_EMAIL });
-  });
-  return {
-    admin: t.withIdentity({ email: ADMIN_EMAIL, emailVerified: true }),
-    member: t.withIdentity({ email: MEMBER_EMAIL, emailVerified: true }),
-  };
-}
+import { ADMIN_EMAIL, memberDoc, OUTSIDER_EMAIL, seedAccess } from "./seed";
 
 describe("authorization", () => {
   it("rejects writes from a non-admin member", async () => {
