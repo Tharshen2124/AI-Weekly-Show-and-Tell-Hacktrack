@@ -4,6 +4,7 @@ import { ReactNode, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAccess } from "@/lib/use-access";
 import { Navbar } from "@/components/nav/navbar";
+import { Attribution } from "@/components/ui/attribution";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -19,9 +20,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   if (isLoading || !hasAccess) return null;
 
   return (
-    <div className="min-h-dvh">
+    <div className="flex min-h-dvh flex-col">
       <Navbar />
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">{children}</main>
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6">{children}</main>
+      <footer className="border-t border-edge">
+        <div className="mx-auto max-w-7xl px-4 py-5 text-xs text-ink-faint sm:px-6">
+          <Attribution />
+        </div>
+      </footer>
     </div>
   );
 }

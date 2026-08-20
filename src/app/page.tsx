@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { useAccess } from "@/lib/use-access";
+import { Attribution } from "@/components/ui/attribution";
 
 const TITLE = "HackTrack";
 
@@ -76,7 +77,10 @@ export default function LandingPage() {
       </main>
 
       <footer className="relative z-10 border-t border-[#1e3a40] px-6 py-5 text-center text-xs text-[#6e8285]">
-        A private dashboard for members. Ask an organiser for access.
+        <p>A private dashboard for members. Ask an organiser for access.</p>
+        <p className="mt-1.5">
+          <Attribution />
+        </p>
       </footer>
     </div>
   );
