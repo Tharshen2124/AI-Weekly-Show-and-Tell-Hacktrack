@@ -144,7 +144,6 @@ describe("meetups.list date range", () => {
         email: "ana@example.com",
         isActive: true,
         registerDate: "2026-01-01",
-        progressTalkNum: 0,
         updatedAt: Date.now(),
       });
       const projectId = await ctx.db.insert("projects", {

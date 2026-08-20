@@ -273,7 +273,6 @@ export function MemberDetailModal({
                   email: member.email,
                   isActive: member.isActive,
                   registerDate: member.registerDate,
-                  progressTalkNum: member.progressTalkNum,
                   accessLevel: member.accessLevel ?? "none",
                 }}
                 onSaved={() => setEditing(false)}

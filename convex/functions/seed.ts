@@ -76,7 +76,6 @@ export default internalMutation({
         email: `${name.toLowerCase().replace(/[^a-z]+/g, ".")}@example.com`,
         isActive: rand() > 0.4,
         registerDate: isoDaysAgo(Math.floor(rand() * 700) + 30),
-        progressTalkNum: Math.floor(rand() * 12),
         updatedAt: now,
       });
       memberIds.push(id);

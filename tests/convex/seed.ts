@@ -10,7 +10,6 @@ export function memberDoc(name: string, overrides: Record<string, unknown> = {})
     email: `${name.toLowerCase()}@example.com`,
     isActive: true,
     registerDate: "2026-01-01",
-    progressTalkNum: 0,
     updatedAt: Date.now(),
     ...overrides,
   };

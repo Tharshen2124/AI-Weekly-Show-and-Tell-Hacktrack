@@ -40,7 +40,6 @@ export const grantAccess = internalMutation({
       email,
       isActive: true,
       registerDate: new Date().toISOString().slice(0, 10),
-      progressTalkNum: 0,
       accessLevel: args.accessLevel,
       updatedAt: Date.now(),
     });

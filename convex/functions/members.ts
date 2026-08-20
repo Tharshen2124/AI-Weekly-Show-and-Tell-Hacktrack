@@ -224,7 +224,6 @@ const memberFields = {
   email: v.string(),
   isActive: v.optional(v.boolean()),
   registerDate: v.string(),
-  progressTalkNum: v.optional(v.number()),
   accessLevel: v.optional(accessLevelValidator),
 };
 
@@ -255,7 +254,6 @@ export const create = mutation({
       email,
       isActive: fields.isActive ?? false,
       registerDate: fields.registerDate,
-      progressTalkNum: fields.progressTalkNum ?? 0,
       accessLevel: fields.accessLevel,
       updatedAt: Date.now(),
     });
@@ -269,7 +267,6 @@ export const update = mutation({
     email: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
     registerDate: v.optional(v.string()),
-    progressTalkNum: v.optional(v.number()),
     accessLevel: v.optional(v.union(accessLevelValidator, v.null())),
   },
   handler: async (ctx, { id, accessLevel, ...fields }) => {

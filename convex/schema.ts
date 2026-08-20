@@ -17,7 +17,6 @@ export default defineSchema({
     email: v.string(), // always stored lowercase; it is the Google identity key
     isActive: v.boolean(),
     registerDate: v.string(), // YYYY-MM-DD
-    progressTalkNum: v.number(),
     accessLevel: v.optional(accessLevelValidator),
     updatedAt: v.number(), // epoch ms
   })

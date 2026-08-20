@@ -85,7 +85,6 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
             {[
               { label: "Projects", value: member.projectCount },
-              { label: "Progress talks", value: member.progressTalkNum },
               { label: "Updates", value: member.totalUpdates },
               { label: "Active for", value: member.durationActive },
               {

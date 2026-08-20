@@ -51,7 +51,6 @@ export default function MemberEditPage({ params }: { params: Promise<{ id: strin
               email: member.email,
               isActive: member.isActive,
               registerDate: member.registerDate,
-              progressTalkNum: member.progressTalkNum,
               accessLevel: member.accessLevel ?? "none",
             }}
             onSaved={() => router.push(`/members/${id}`)}

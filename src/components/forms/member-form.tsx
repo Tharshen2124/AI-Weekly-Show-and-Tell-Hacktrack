@@ -15,10 +15,6 @@ const schema = z.object({
   name: z.string().trim().min(1, "Name is required"),
   email: z.string().trim().email("A valid email is required"),
   registerDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Register date is required"),
-  progressTalkNum: z
-    .number()
-    .int("Progress talks must be a whole number")
-    .min(0, "Progress talks cannot be negative"),
 });
 
 /** "none" is the UI spelling of an absent accessLevel: on the roster, no sign-in. */
@@ -36,7 +32,6 @@ export interface MemberFormValues {
   email: string;
   isActive: boolean;
   registerDate: string;
-  progressTalkNum: number;
   accessLevel: AccessChoice;
 }
 
@@ -59,7 +54,6 @@ export function MemberForm({
       email: "",
       isActive: false,
       registerDate: todayISO(),
-      progressTalkNum: 0,
       accessLevel: "none",
     },
   );
@@ -86,7 +80,6 @@ export function MemberForm({
         email: parsed.data.email,
         isActive: values.isActive,
         registerDate: parsed.data.registerDate,
-        progressTalkNum: parsed.data.progressTalkNum,
       };
       const accessLevel = values.accessLevel === "none" ? null : values.accessLevel;
       if (initial?.id) {
@@ -134,15 +127,6 @@ export function MemberForm({
             type="date"
             value={values.registerDate}
             onChange={(e) => set("registerDate", e.target.value)}
-            className={inputClass}
-          />
-        </Field>
-        <Field label="Progress talks given">
-          <input
-            type="number"
-            min={0}
-            value={values.progressTalkNum}
-            onChange={(e) => set("progressTalkNum", Number(e.target.value))}
             className={inputClass}
           />
         </Field>
