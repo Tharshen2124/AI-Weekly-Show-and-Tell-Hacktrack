@@ -91,7 +91,7 @@ export default function LoginPage() {
         />
         <div className="absolute inset-0 flex flex-col justify-between p-10">
           <span className="font-brand text-lg font-semibold text-[#f5f2ea]">
-            Hack<span className="text-[#a9babc]">Track</span>
+            Show<span className="text-[#a9babc]">&amp;</span>Tell
           </span>
           <AnimatePresence mode="wait">
             <motion.p

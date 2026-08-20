@@ -1,8 +1,15 @@
-# HackTrack
+# Show&Tell
 
-A private meetup tracker for a small hacker/maker community: members, meetups,
-projects, and the talks ("updates") given about each project — with derived
-engagement signals like *meetups since last talk*.
+The running record of what [Malaysian AI](https://www.malaysian.ai/) builders
+are building — a private tracker for the
+[Weekly Show & Tell](https://luma.com/malaysianai) at the Malaysian AI Residency
+(Thursdays, 5–6PM, 500 Global Office, AICB, KL — 4 min demo + 2 min feedback
+per person).
+
+It records members, meetups, projects, and the talks ("updates") given about
+each project during the Show & Tell slot — with derived engagement signals like
+*meetups since last talk*, so you can see which projects are still moving and
+who has gone quiet.
 
 Built per [`spec.md`](./spec.md) with **Next.js 16 (App Router)**, **Convex**,
 **Tailwind CSS v4**, and **Zustand**. UI design (cream / dark-teal palette,

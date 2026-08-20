@@ -20,7 +20,7 @@ const LINKS = [
 function Brand() {
   return (
     <Link href="/dashboard" className="font-brand text-lg font-semibold">
-      Hack<span className="text-ink-muted">Track</span>
+      Show<span className="text-ink-muted">&amp;</span>Tell
     </Link>
   );
 }

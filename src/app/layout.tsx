@@ -14,8 +14,9 @@ const newsreader = Newsreader({
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-grotesk" });
 
 export const metadata: Metadata = {
-  title: "HackTrack",
-  description: "Community meetup tracker for a small hacker/maker community",
+  title: "Show&Tell — Malaysian AI",
+  description:
+    "The running record of what Malaysian AI builders are building — every project shown at the Weekly Show & Tell, and the progress that followed.",
 };
 
 const themeInitScript = `(function(){try{var t=localStorage.getItem("theme");if(t==="dark"||(!t&&window.matchMedia("(prefers-color-scheme: dark)").matches)){document.documentElement.classList.add("dark")}}catch(e){}})();`;
