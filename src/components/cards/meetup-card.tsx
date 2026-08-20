@@ -51,6 +51,14 @@ export function MeetupCard({ meetup }: { meetup: MeetupListItem }) {
         onClose={() => setOpen(false)}
         title={title}
         wide
+        footer={
+          <Link
+            href={`/meetups/${meetup._id}`}
+            className="text-sm font-medium underline underline-offset-4 hover:text-ink-muted"
+          >
+            View full page →
+          </Link>
+        }
         headerActions={
           isAdmin && (
             <>
@@ -102,14 +110,6 @@ export function MeetupCard({ meetup }: { meetup: MeetupListItem }) {
               <p className="mt-1.5 text-sm text-ink-muted">{u.description}</p>
             </div>
           ))}
-        </div>
-        <div className="mt-5 border-t border-edge pt-4">
-          <Link
-            href={`/meetups/${meetup._id}`}
-            className="text-sm font-medium underline underline-offset-4 hover:text-ink-muted"
-          >
-            View full page →
-          </Link>
         </div>
       </ModalLayout>
 

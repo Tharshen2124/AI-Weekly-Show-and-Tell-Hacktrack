@@ -14,6 +14,8 @@ interface ModalLayoutProps {
   wide?: boolean;
   /** Icon-only actions rendered in the header, before the close button. */
   headerActions?: ReactNode;
+  /** Fixed area below the scrollable content, always visible without scrolling. */
+  footer?: ReactNode;
 }
 
 export function ModalLayout({
@@ -23,6 +25,7 @@ export function ModalLayout({
   children,
   wide,
   headerActions,
+  footer,
 }: ModalLayoutProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -104,6 +107,9 @@ export function ModalLayout({
               </div>
             </div>
             <div className="overflow-y-auto px-5 py-4">{children}</div>
+            {footer && (
+              <div className="shrink-0 border-t border-edge px-5 py-3">{footer}</div>
+            )}
           </motion.div>
         </motion.div>
       )}

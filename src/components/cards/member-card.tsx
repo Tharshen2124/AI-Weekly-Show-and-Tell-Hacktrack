@@ -202,6 +202,16 @@ export function MemberDetailModal({
       onClose={onClose}
       title={member?.name ?? "Member"}
       wide
+      footer={
+        member && (
+          <Link
+            href={`/members/${member._id}`}
+            className="text-sm font-medium underline underline-offset-4 hover:text-ink-muted"
+          >
+            View full page →
+          </Link>
+        )
+      }
       headerActions={
         isAdmin &&
         member && (
@@ -248,14 +258,6 @@ export function MemberDetailModal({
             {member.projects.map((project) => (
               <ProjectSection key={project._id} project={project} />
             ))}
-          </div>
-          <div className="mt-5 border-t border-edge pt-4">
-            <Link
-              href={`/members/${member._id}`}
-              className="text-sm font-medium underline underline-offset-4 hover:text-ink-muted"
-            >
-              View full page →
-            </Link>
           </div>
 
           <ModalLayout
