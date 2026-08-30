@@ -138,7 +138,7 @@ export default function LandingPage() {
           >
             Malaysian AI
           </a>{" "}
-          Residency. Private to members — ask an organiser for access.
+          Residency. Private to members. Ask an organiser for access.
         </p>
         <p className="mt-1.5">
           <Attribution />
