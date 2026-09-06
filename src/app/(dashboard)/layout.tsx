@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAccess } from "@/lib/use-access";
 import { Navbar } from "@/components/nav/navbar";
 import { Attribution } from "@/components/ui/attribution";
+import { TranscriptionQueueTray } from "@/components/ui/transcription-queue-tray";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -28,6 +29,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <Attribution />
         </div>
       </footer>
+      <TranscriptionQueueTray />
     </div>
   );
 }

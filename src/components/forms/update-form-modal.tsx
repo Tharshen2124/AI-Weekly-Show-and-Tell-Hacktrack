@@ -10,6 +10,9 @@ import { ModalLayout } from "@/components/ui/modal-layout";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { SearchableDropdown } from "@/components/ui/searchable-dropdown";
 import { InlineErrorBanner } from "@/components/ui/error-state";
+import { DictationButton } from "@/components/ui/dictation-button";
+import { transcribeAudio } from "@/lib/transcribe";
+import { useTranscriptionQueue } from "@/lib/transcription-queue";
 import { Field, inputClass } from "./field";
 import { formatDate } from "@/lib/format";
 
@@ -48,6 +51,7 @@ function UpdateFormFields({ initial, onClose }: { initial?: UpdateInitial; onClo
   const formOptions = useQuery(api.functions.updates.formOptions, {});
   const createUpdate = useMutation(api.functions.updates.create);
   const updateUpdate = useMutation(api.functions.updates.update);
+  const enqueue = useTranscriptionQueue((s) => s.enqueue);
 
   const [memberId, setMemberId] = useState<string | null>(initial?.memberId ?? null);
   const [projectId, setProjectId] = useState<string | null>(initial?.projectId ?? null);
@@ -78,6 +82,47 @@ function UpdateFormFields({ initial, onClose }: { initial?: UpdateInitial; onClo
         },
       ]
     : [];
+
+  const selectedProject = selectedMember?.projects.find((p) => p.id === projectId);
+  // Nothing can be queued until the update is identified, since the queue saves
+  // it without coming back to this form.
+  const identified = Boolean(memberId && projectId && meetupId);
+  const queueLabel = `${selectedMember?.name ?? ""} · ${selectedProject?.name ?? ""}`;
+
+  /**
+   * New updates hand the clip to the background queue and close, so the scribe
+   * can start the next person while this one transcribes.
+   */
+  const queueRecording = (blob: Blob, extension: string) => {
+    enqueue({
+      memberId: memberId as Id<"members">,
+      projectId: projectId as Id<"projects">,
+      meetupId: meetupId as Id<"meetups">,
+      label: queueLabel,
+      blob,
+      extension,
+    });
+    toast.info(`Queued ${queueLabel} — transcribing in the background.`);
+    onClose();
+  };
+
+  /**
+   * Edits transcribe in place instead: the update already exists, and someone
+   * editing it is sitting here waiting for the text anyway.
+   */
+  const transcribeInline = async (blob: Blob, extension: string) => {
+    try {
+      const text = await transcribeAudio(blob, extension);
+      if (!text) {
+        toast.info("No speech was picked up in that recording.");
+        return;
+      }
+      // Appended, so typed text and a second take both survive.
+      setDescription((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not transcribe the audio.");
+    }
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,15 +188,43 @@ function UpdateFormFields({ initial, onClose }: { initial?: UpdateInitial; onClo
             placeholder="Select a meetup"
           />
         </Field>
-        <Field label="Description">
+        <div>
+          {/* The mic sits outside the label: a control nested in a <label> also
+              retargets its clicks at the textarea. */}
+          <div className="mb-1.5 flex items-center justify-between gap-2">
+            <label htmlFor="update-description" className="text-sm font-medium text-ink-muted">
+              Description
+            </label>
+            {initial ? (
+              <DictationButton onRecorded={transcribeInline} />
+            ) : (
+              <DictationButton
+                onRecorded={queueRecording}
+                label="Record & queue"
+                disabled={!identified}
+                title={
+                  identified
+                    ? "Record now — this update saves itself once transcribed"
+                    : "Choose a member, project, and meetup first"
+                }
+              />
+            )}
+          </div>
           <textarea
+            id="update-description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={4}
             placeholder="What was talked about?"
             className={inputClass}
           />
-        </Field>
+          {!initial && (
+            <p className="mt-1.5 text-xs text-ink-faint">
+              Recording saves this update on its own once transcribed, so you can move straight to
+              the next person. Type here instead to write it out by hand.
+            </p>
+          )}
+        </div>
         <div className="flex justify-end gap-2 pt-2">
           <button
             type="button"
